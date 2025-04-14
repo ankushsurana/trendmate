@@ -42,25 +42,15 @@ interface StockMetricsProps {
 }
 
 const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
-  // Mock data if no data is provided
-  const mockData = {
-    open: 152.83,
-    high: 155.41,
-    low: 152.34,
-    close: 154.92,
-    volume: 45823900,
-    change: 2.09,
-    changePercent: 1.37,
-  };
-
+  // Use real data if provided, otherwise use mock data
   const stockData = {
-    open: data.open ?? mockData.open,
-    high: data.high ?? mockData.high,
-    low: data.low ?? mockData.low,
-    close: data.close ?? mockData.close,
-    volume: data.volume ?? mockData.volume,
-    change: data.change ?? mockData.change,
-    changePercent: data.changePercent ?? mockData.changePercent,
+    open: data?.open ?? 152.83,
+    high: data?.high ?? 155.41,
+    low: data?.low ?? 152.34,
+    close: data?.close ?? 154.92,
+    volume: data?.volume ?? 45823900,
+    change: data?.change ?? 2.09,
+    changePercent: data?.changePercent ?? 1.37,
   };
 
   const formatPrice = (price: number) => `$${price.toFixed(2)}`;
@@ -75,8 +65,8 @@ const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
   return (
     <Card className="dashboard-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center">
-          <span className="mr-2">Key Metrics</span>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Key Metrics</span>
           {isPositive ? (
             <TrendingUp className="h-5 w-5 text-green-600" />
           ) : (
@@ -85,20 +75,39 @@ const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-          <Metric title="Open" value={formatPrice(stockData.open)} />
-          <Metric title="High" value={formatPrice(stockData.high)} />
-          <Metric title="Low" value={formatPrice(stockData.low)} />
-          <Metric title="Close" value={formatPrice(stockData.close)} />
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <div className="text-sm text-gray-500">Open</div>
+            <div className="text-2xl font-semibold">{formatPrice(stockData.open)}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">High</div>
+            <div className="text-2xl font-semibold">{formatPrice(stockData.high)}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Low</div>
+            <div className="text-2xl font-semibold">{formatPrice(stockData.low)}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Close</div>
+            <div className="text-2xl font-semibold">{formatPrice(stockData.close)}</div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-          <Metric title="Volume" value={formatVolume(stockData.volume)} />
-          <Metric
-            title="Change"
-            value={formatPrice(stockData.change)}
-            change={`${stockData.changePercent.toFixed(2)}%`}
-            isPositive={isPositive}
-          />
+        
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <div className="text-sm text-gray-500">Volume</div>
+            <div className="text-2xl font-semibold">{formatVolume(stockData.volume)}</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500">Change</div>
+            <div className="flex items-baseline">
+              <span className="text-2xl font-semibold">{formatPrice(Math.abs(stockData.change))}</span>
+              <span className={`ml-2 text-sm ${isPositive ? "text-green-600" : "text-red-600"}`}>
+                {isPositive ? "+" : "-"}{stockData.changePercent.toFixed(2)}%
+              </span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

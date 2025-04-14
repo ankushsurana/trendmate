@@ -7,8 +7,6 @@ import {
   Menu,
   X,
   TrendingUp,
-  ActivitySquare,
-  BarChart3
 } from "lucide-react";
 import {
   DropdownMenu,

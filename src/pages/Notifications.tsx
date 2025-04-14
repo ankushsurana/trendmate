@@ -15,17 +15,19 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, PlusCircle, Bell } from "lucide-react";
+import { Search, PlusCircle, Bell, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState("recent");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [newAlertSymbol, setNewAlertSymbol] = useState("");
-
+  const [alertType, setAlertType] = useState("MA Crossover");
+  
   // Mock alerts - in a real app, these would come from an API
-  const mockAlerts = [
+  const [recentAlerts, setRecentAlerts] = useState([
     {
       id: 1,
       symbol: "AAPL",
@@ -58,10 +60,10 @@ const Notifications = () => {
       timestamp: "2 days ago",
       isImportant: false,
     },
-  ];
+  ]);
 
   // Mock subscribed alerts
-  const mockSubscriptions = [
+  const [subscriptions, setSubscriptions] = useState([
     {
       id: 101,
       symbol: "AAPL",
@@ -83,21 +85,58 @@ const Notifications = () => {
       condition: "When RSI drops below 30 or rises above 70",
       active: false,
     },
-  ];
+  ]);
 
   // Handle subscribing to a new alert
   const handleSubscribe = () => {
     if (newAlertSymbol.trim()) {
+      // Create a new subscription object
+      const newSubscription = {
+        id: Date.now(),
+        symbol: newAlertSymbol.toUpperCase(),
+        type: alertType,
+        condition: getConditionText(alertType),
+        active: true,
+      };
+      
+      // Add to subscriptions
+      setSubscriptions([...subscriptions, newSubscription]);
+      
+      // Show success toast
       toast.success(`Alert for ${newAlertSymbol.toUpperCase()} created successfully`);
+      
+      // Reset form
       setNewAlertSymbol("");
     } else {
       toast.error("Please enter a valid stock symbol");
     }
   };
 
+  // Get condition text based on alert type
+  const getConditionText = (type: string) => {
+    switch(type) {
+      case "MA Crossover": 
+        return "When 20-day EMA crosses 50-day EMA";
+      case "Volume Alert": 
+        return "When volume exceeds 30-day average by 20%";
+      case "RSI Alert": 
+        return "When RSI drops below 30 or rises above 70";
+      case "Price Alert": 
+        return "When price changes by 5% or more in a day";
+      default: 
+        return "When significant market event occurs";
+    }
+  };
+
   // Toggle subscription status
   const toggleSubscription = (id: number) => {
-    // In a real app, this would update the subscription status in your backend
+    setSubscriptions(
+      subscriptions.map((sub) =>
+        sub.id === id ? { ...sub, active: !sub.active } : sub
+      )
+    );
+    
+    // Show success toast
     toast.success("Subscription status updated");
   };
 
@@ -112,7 +151,7 @@ const Notifications = () => {
               <Switch
                 id="email-notifications"
                 checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
+                onCheckedChange={(checked) => setEmailNotifications(checked)}
               />
               <Label htmlFor="email-notifications">Email Alerts</Label>
             </div>
@@ -120,12 +159,19 @@ const Notifications = () => {
               <Switch
                 id="push-notifications"
                 checked={pushNotifications}
-                onCheckedChange={setPushNotifications}
+                onCheckedChange={(checked) => setPushNotifications(checked)}
               />
               <Label htmlFor="push-notifications">Push Alerts</Label>
             </div>
           </div>
         </div>
+
+        <Alert variant="default" className="mb-8 bg-amber-50 border border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-700" />
+          <AlertDescription className="text-amber-800">
+            AI can assist, but always invest with caution — the market has a mind of its own.
+          </AlertDescription>
+        </Alert>
 
         <Tabs defaultValue="recent" className="space-y-8" onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -135,7 +181,7 @@ const Notifications = () => {
 
           <TabsContent value="recent" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {mockAlerts.map((alert) => (
+              {recentAlerts.map((alert) => (
                 <CrossoverAlert
                   key={alert.id}
                   symbol={alert.symbol}
@@ -157,7 +203,7 @@ const Notifications = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockSubscriptions.map((subscription) => (
+                {subscriptions.map((subscription) => (
                   <div
                     key={subscription.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg"
@@ -184,15 +230,38 @@ const Notifications = () => {
 
                 <div className="pt-4 mt-4 border-t">
                   <h3 className="font-medium mb-4">Add New Alert</h3>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="flex-grow">
+                  <div className="flex flex-col space-y-4">
+                    <div>
+                      <Label htmlFor="stock-symbol">Stock Symbol</Label>
                       <Input
+                        id="stock-symbol"
                         value={newAlertSymbol}
                         onChange={(e) => setNewAlertSymbol(e.target.value)}
                         placeholder="Enter stock symbol (e.g. AAPL)"
+                        className="mt-1"
                       />
                     </div>
-                    <Button onClick={handleSubscribe}>
+                    
+                    <div>
+                      <Label htmlFor="alert-type">Alert Type</Label>
+                      <select
+                        id="alert-type"
+                        value={alertType}
+                        onChange={(e) => setAlertType(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-trendmate-purple focus:border-transparent"
+                      >
+                        <option value="MA Crossover">MA Crossover</option>
+                        <option value="Volume Alert">Volume Alert</option>
+                        <option value="RSI Alert">RSI Alert</option>
+                        <option value="Price Alert">Price Alert</option>
+                      </select>
+                    </div>
+                    
+                    <Button 
+                      onClick={handleSubscribe} 
+                      disabled={!newAlertSymbol.trim()}
+                      className="mt-2"
+                    >
                       <PlusCircle className="h-4 w-4 mr-2" />
                       Create Alert
                     </Button>

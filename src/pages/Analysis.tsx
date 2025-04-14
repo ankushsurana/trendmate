@@ -8,6 +8,7 @@ import ReportSummary from "@/components/StockComponents/ReportSummary";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
@@ -71,6 +72,17 @@ const Analysis = () => {
           </div>
         ) : (
           <div className="mt-8 space-y-8">
+            <Alert variant="default" className="bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-700" />
+              <AlertDescription className="text-amber-800">
+                AI can assist, but always invest with caution — the market has a mind of its own.
+              </AlertDescription>
+            </Alert>
+            
+            {/* First section: Report Summary */}
+            <ReportSummary symbol={searchedSymbol} insights={mockInsights} />
+            
+            {/* Second section: Chart */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
                 <StockChart
@@ -83,27 +95,23 @@ const Analysis = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2">
-                <ReportSummary symbol={searchedSymbol} insights={mockInsights} />
-              </div>
-              <div>
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Recent Signals</h3>
-                  <CrossoverAlert
-                    symbol={searchedSymbol}
-                    alertType="MA Crossover"
-                    message="20-day EMA crossed above 50-day EMA, indicating a bullish signal."
-                    timestamp="2 hours ago"
-                    isImportant={true}
-                  />
-                  <CrossoverAlert
-                    symbol={searchedSymbol}
-                    alertType="Volume Alert"
-                    message="Trading volume is 25% higher than the 30-day average."
-                    timestamp="1 day ago"
-                  />
-                </div>
+            {/* Third section: Signals */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Recent Signals</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CrossoverAlert
+                  symbol={searchedSymbol}
+                  alertType="MA Crossover"
+                  message="20-day EMA crossed above 50-day EMA, indicating a bullish signal."
+                  timestamp="2 hours ago"
+                  isImportant={true}
+                />
+                <CrossoverAlert
+                  symbol={searchedSymbol}
+                  alertType="Volume Alert"
+                  message="Trading volume is 25% higher than the 30-day average."
+                  timestamp="1 day ago"
+                />
               </div>
             </div>
           </div>
