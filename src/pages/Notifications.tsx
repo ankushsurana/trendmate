@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, PlusCircle, Bell, AlertCircle } from "lucide-react";
+import { Search, PlusCircle, Bell, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -140,6 +140,18 @@ const Notifications = () => {
     toast.success("Subscription status updated");
   };
 
+  // Delete a subscription
+  const deleteSubscription = (id: number) => {
+    // Find the subscription to be deleted
+    const subscription = subscriptions.find(sub => sub.id === id);
+    
+    // Remove the subscription
+    setSubscriptions(subscriptions.filter(sub => sub.id !== id));
+    
+    // Show success toast
+    toast.success(`Alert for ${subscription?.symbol} deleted successfully`);
+  };
+
   return (
     <PageLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -219,11 +231,19 @@ const Notifications = () => {
                       </div>
                       <div className="mt-1 text-sm text-gray-500">{subscription.condition}</div>
                     </div>
-                    <div className="flex mt-2 sm:mt-0">
+                    <div className="flex mt-2 sm:mt-0 items-center space-x-2">
                       <Switch
                         checked={subscription.active}
                         onCheckedChange={() => toggleSubscription(subscription.id)}
                       />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteSubscription(subscription.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}

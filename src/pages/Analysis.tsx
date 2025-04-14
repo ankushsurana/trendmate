@@ -7,7 +7,7 @@ import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, BarChart2, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Analysis = () => {
@@ -27,7 +27,7 @@ const Analysis = () => {
     volume: 45823900,
   };
 
-  // Mock insights
+  // Mock insights for AI analysis
   const mockInsights = [
     {
       title: "Strong Buy Signal",
@@ -46,6 +46,28 @@ const Analysis = () => {
       content:
         "The stock is approaching a key resistance level at $162.50. Breaking through could signal further upside.",
       type: "neutral" as const,
+    },
+  ];
+
+  // Mock company summary insights
+  const mockCompanySummary = [
+    {
+      title: "Company Overview",
+      content:
+        `${searchedSymbol || "AAPL"} is a leading technology company that designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories.`,
+      type: "neutral" as const,
+    },
+    {
+      title: "Financial Health",
+      content:
+        "The company has a strong balance sheet with significant cash reserves and consistent revenue growth over the past five years.",
+      type: "positive" as const,
+    },
+    {
+      title: "Market Position",
+      content:
+        "A dominant player in the premium smartphone market with expanding services revenue and global brand recognition.",
+      type: "positive" as const,
     },
   ];
 
@@ -79,8 +101,13 @@ const Analysis = () => {
               </AlertDescription>
             </Alert>
             
-            {/* First section: Report Summary */}
-            <ReportSummary symbol={searchedSymbol} insights={mockInsights} />
+            {/* First section: Company Summary */}
+            <ReportSummary 
+              symbol={searchedSymbol} 
+              insights={mockCompanySummary} 
+              title="Company Summary"
+              icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
+            />
             
             {/* Second section: Chart */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -95,7 +122,10 @@ const Analysis = () => {
               </div>
             </div>
 
-            {/* Third section: Signals */}
+            {/* Third section: AI Analysis */}
+            <ReportSummary symbol={searchedSymbol} insights={mockInsights} />
+
+            {/* Fourth section: Signals */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Recent Signals</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

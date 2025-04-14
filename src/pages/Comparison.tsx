@@ -4,9 +4,11 @@ import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import ComparisonCard from "@/components/StockComponents/ComparisonCard";
 import StockChart from "@/components/StockComponents/StockChart";
+import ReportSummary from "@/components/StockComponents/ReportSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeftRight, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, RefreshCw, AlertCircle, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
@@ -24,6 +26,34 @@ const Comparison = () => {
       { title: "Dividend Yield", value1: "0.59%", value2: "0.86%", winner: 2 as const },
     ],
   };
+
+  // Mock company 1 summary
+  const mockCompany1Summary = [
+    {
+      title: "Company Overview",
+      content: `${symbol1 || "AAPL"} is a leading technology company specializing in consumer electronics, software, and online services.`,
+      type: "neutral" as const,
+    },
+    {
+      title: "Financial Health",
+      content: "Strong balance sheet with significant cash reserves and consistent revenue growth.",
+      type: "positive" as const,
+    },
+  ];
+
+  // Mock company 2 summary
+  const mockCompany2Summary = [
+    {
+      title: "Company Overview",
+      content: `${symbol2 || "MSFT"} is a multinational technology company that develops, manufactures, licenses, supports, and sells computer software, consumer electronics, and related services.`,
+      type: "neutral" as const,
+    },
+    {
+      title: "Financial Health",
+      content: "Excellent financial position with diversified revenue streams and high profit margins.",
+      type: "positive" as const,
+    },
+  ];
 
   // Handle search submission for first stock
   const handleSearch1 = (symbol: string) => {
@@ -113,17 +143,43 @@ const Comparison = () => {
           </div>
         ) : (
           <div className="mt-8 space-y-8">
+            <Alert variant="default" className="bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-700" />
+              <AlertDescription className="text-amber-800">
+                AI can assist, but always invest with caution — the market has a mind of its own.
+              </AlertDescription>
+            </Alert>
+
+            {/* First section: Company Summaries */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ReportSummary 
+                symbol={symbol1} 
+                insights={mockCompany1Summary}
+                title="Company Summary"
+                icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
+              />
+              <ReportSummary 
+                symbol={symbol2} 
+                insights={mockCompany2Summary}
+                title="Company Summary"
+                icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
+              />
+            </div>
+
+            {/* Second section: Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <StockChart symbol={symbol1} data={[]} />
               <StockChart symbol={symbol2} data={[]} />
             </div>
 
+            {/* Third section: Comparison Metrics */}
             <ComparisonCard
               symbol1={symbol1}
               symbol2={symbol2}
               metrics={mockComparisonData.metrics}
             />
 
+            {/* Fourth section: Key Strengths */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="dashboard-card">
                 <CardContent className="p-6">

@@ -11,9 +11,16 @@ interface InsightItem {
 interface ReportSummaryProps {
   symbol: string;
   insights: InsightItem[];
+  title?: string;
+  icon?: React.ReactNode;
 }
 
-const ReportSummary = ({ symbol, insights }: ReportSummaryProps) => {
+const ReportSummary = ({ 
+  symbol, 
+  insights, 
+  title = "Trendmate AI Analysis", 
+  icon = <BarChart2 className="mr-2 h-5 w-5 text-trendmate-purple" /> 
+}: ReportSummaryProps) => {
   // Mock data if no insights are provided
   const mockInsights = [
     {
@@ -42,8 +49,8 @@ const ReportSummary = ({ symbol, insights }: ReportSummaryProps) => {
     <Card className="dashboard-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center">
-          <BarChart2 className="mr-2 h-5 w-5 text-trendmate-purple" />
-          Trendmate AI Analysis for {symbol}
+          {icon}
+          {title} for {symbol}
         </CardTitle>
       </CardHeader>
       <CardContent>
