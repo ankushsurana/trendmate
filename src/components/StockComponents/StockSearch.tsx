@@ -9,19 +9,21 @@ interface StockSearchProps {
   onSearch: (symbol: string) => void;
   placeholder?: string;
   buttonText?: string;
+  isLoading?: boolean;
 }
 
 const StockSearch = ({
   onSearch,
-  placeholder = "Enter a stock symbol (e.g. AAPL)",
+  placeholder = "Enter a company name (e.g. Walmart)",
   buttonText = "Analyze",
+  isLoading = false,
 }: StockSearchProps) => {
   const [symbol, setSymbol] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (symbol.trim()) {
-      onSearch(symbol.trim().toUpperCase());
+      onSearch(symbol.trim());
     }
   };
 
@@ -35,12 +37,14 @@ const StockSearch = ({
               onChange={(e) => setSymbol(e.target.value)}
               placeholder={placeholder}
               className="pr-8"
+              disabled={isLoading}
             />
             {symbol && (
               <button
                 type="button"
                 onClick={() => setSymbol("")}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4 text-gray-400" />
               </button>
@@ -48,11 +52,11 @@ const StockSearch = ({
           </div>
           <Button
             type="submit"
-            disabled={!symbol.trim()}
+            disabled={!symbol.trim() || isLoading}
             className="bg-trendmate-purple hover:bg-trendmate-purple-light"
           >
             <Search className="w-4 h-4 mr-2" />
-            {buttonText}
+            {isLoading ? "Loading..." : buttonText}
           </Button>
         </form>
       </CardContent>

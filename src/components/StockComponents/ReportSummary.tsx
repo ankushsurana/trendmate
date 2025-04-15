@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb, BarChart2 } from "lucide-react";
+import { Lightbulb, BarChart2, FileText } from "lucide-react";
 
 interface InsightItem {
   title: string;
@@ -27,30 +27,32 @@ const ReportSummary = ({
       title: "Strong Buy Signal",
       content:
         "The 20-day EMA has crossed above the 50-day EMA, indicating a potential bullish trend for the stock.",
-      type: "positive",
+      type: "positive" as const,
     },
     {
       title: "Rising Volume",
       content:
         "Trading volume has increased by 25% compared to the 30-day average, suggesting growing investor interest.",
-      type: "positive",
+      type: "positive" as const,
     },
     {
       title: "Resistance Level",
       content:
         "The stock is approaching a key resistance level at $162.50. Breaking through could signal further upside.",
-      type: "neutral",
+      type: "neutral" as const,
     },
   ];
 
   const reportInsights = insights && insights.length > 0 ? insights : mockInsights;
+  const displayIcon = title === "Company Summary" ? 
+    <FileText className="mr-2 h-5 w-5 text-trendmate-purple" /> : icon;
 
   return (
     <Card className="dashboard-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center">
-          {icon}
-          {title} for {symbol}
+          {displayIcon}
+          {title} {symbol && `for ${symbol}`}
         </CardTitle>
       </CardHeader>
       <CardContent>
