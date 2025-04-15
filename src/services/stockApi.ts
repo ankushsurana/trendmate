@@ -1,4 +1,3 @@
-
 interface TaskInputs {
   rawQuery: string;
 }
@@ -70,27 +69,12 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
       }
     };
 
-    // In a real implementation, you would make the actual API call here
-    // For now, we'll simulate the API response after a brief delay
-    
     console.log("Fetching data for:", companyName);
     console.log("Request payload:", request);
     
-    // Simulating API delay
+    // Simulating API delay - in production, replace with actual fetch call
     return new Promise((resolve) => {
       setTimeout(() => {
-        // This would be replaced with a real fetch call in production
-        // const response = await fetch('your-api-endpoint', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     // Add other required headers here
-        //   },
-        //   body: JSON.stringify(request)
-        // });
-        // return await response.json();
-        
-        // For now, return a mock response with the company name integrated
         const mockResponse = getMockResponse(companyName);
         resolve(mockResponse);
       }, 1000);
@@ -101,8 +85,6 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
   }
 };
 
-// Helper function to generate mock data for testing purposes
-// This would be removed in production when the actual API is integrated
 const getMockResponse = (companyName: string): StockApiResponse => {
   const upperCaseCompany = companyName.toUpperCase();
   

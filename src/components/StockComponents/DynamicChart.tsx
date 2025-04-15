@@ -41,23 +41,24 @@ const DynamicChart: React.FC<DynamicChartProps> = ({ type, data, options, chartL
 
   useEffect(() => {
     if (chartRef.current) {
-      // Destroy existing chart if it exists
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
 
-      // Create new chart
       const ctx = chartRef.current.getContext('2d');
       if (ctx) {
         chartInstance.current = new Chart(ctx, {
           type: type as any,
           data: data,
-          options: options
+          options: {
+            ...options,
+            maintainAspectRatio: false,
+            responsive: true,
+          }
         });
       }
     }
 
-    // Cleanup function
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
@@ -72,9 +73,9 @@ const DynamicChart: React.FC<DynamicChartProps> = ({ type, data, options, chartL
           <span>{chartLabel}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="chart-container">
-          <canvas ref={chartRef} height="300"></canvas>
+      <CardContent className="h-[300px]">
+        <div className="h-full w-full">
+          <canvas ref={chartRef}></canvas>
         </div>
       </CardContent>
     </Card>

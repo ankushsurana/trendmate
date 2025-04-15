@@ -25,23 +25,7 @@ interface StockChartProps {
 const StockChart = ({ data, symbol }: StockChartProps) => {
   const [chartType, setChartType] = useState("line");
 
-  // Mock data for demonstration if no data is provided
-  const mockData = [
-    { date: "2023-01", price: 150, volume: 1200000 },
-    { date: "2023-02", price: 155, volume: 1500000 },
-    { date: "2023-03", price: 140, volume: 1800000 },
-    { date: "2023-04", price: 160, volume: 1300000 },
-    { date: "2023-05", price: 180, volume: 2000000 },
-    { date: "2023-06", price: 185, volume: 1700000 },
-    { date: "2023-07", price: 190, volume: 1900000 },
-    { date: "2023-08", price: 195, volume: 2100000 },
-    { date: "2023-09", price: 185, volume: 1800000 },
-    { date: "2023-10", price: 205, volume: 2500000 },
-    { date: "2023-11", price: 210, volume: 2200000 },
-    { date: "2023-12", price: 225, volume: 2700000 },
-  ];
-
-  const chartData = data && data.length > 0 ? data : mockData;
+  const chartData = data && data.length > 0 ? data : [];
 
   return (
     <Card className="dashboard-card">
@@ -58,8 +42,8 @@ const StockChart = ({ data, symbol }: StockChartProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
             {chartType === "line" ? (
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
