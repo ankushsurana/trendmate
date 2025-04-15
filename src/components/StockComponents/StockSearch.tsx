@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
@@ -10,6 +10,7 @@ interface StockSearchProps {
   placeholder?: string;
   buttonText?: string;
   isLoading?: boolean;
+  value?: string;
 }
 
 const StockSearch = ({
@@ -17,8 +18,14 @@ const StockSearch = ({
   placeholder = "Enter a company name (e.g. Walmart)",
   buttonText = "Analyze",
   isLoading = false,
+  value = "",
 }: StockSearchProps) => {
-  const [symbol, setSymbol] = useState("");
+  const [symbol, setSymbol] = useState(value);
+  
+  useEffect(() => {
+    // Update internal state if external value changes
+    setSymbol(value);
+  }, [value]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

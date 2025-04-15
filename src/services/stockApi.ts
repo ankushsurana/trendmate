@@ -1,5 +1,11 @@
+
+import { useQuery } from "@tanstack/react-query";
+
+// API URL and Headers
+const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-sync";
+
 interface TaskInputs {
-  rawQuery: string;
+  query: string;
 }
 
 interface ApiRequest {
@@ -59,130 +65,162 @@ export interface StockApiResponse {
   };
 }
 
+interface ComparisonApiResponse {
+  content: {
+    companies: Array<{
+      name: string;
+      symbol: string;
+      metrics: Record<string, string | number>;
+      summary: string;
+      strengths: string[];
+      chart: ChartContent;
+    }>;
+    comparison: Array<{
+      title: string;
+      value1: string | number;
+      value2: string | number;
+      winner?: 1 | 2 | 0;
+    }>;
+  };
+}
+
+interface AlertsApiResponse {
+  content: {
+    alerts: Array<{
+      symbol: string;
+      alertType: string;
+      message: string;
+      timestamp: string;
+      isImportant?: boolean;
+    }>;
+  };
+}
+
+const getApiHeaders = () => {
+  return {
+    'widgetKey': 'a6YkfZChaWHFUcJBCjTLWJvETh0L17FJlvVJIi9',
+    'appid': 'uptiq-interns',
+    'Content-Type': 'application/json'
+  };
+};
+
+// Function to fetch stock analysis data
 export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
   try {
     const request: ApiRequest = {
       appId: "uptiq-interns",
       integrationId: "fetch-real-time-data-0202",
       taskInputs: {
-        rawQuery: `${companyName} current stock price`
+        query: `${companyName} current stock price`
       }
     };
 
-    console.log("Fetching data for:", companyName);
-    console.log("Request payload:", request);
+    console.log("Fetching analysis data for:", companyName);
     
-    // Simulating API delay - in production, replace with actual fetch call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockResponse = getMockResponse(companyName);
-        resolve(mockResponse);
-      }, 1000);
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
     });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
   } catch (error) {
     console.error("Error fetching stock data:", error);
     throw error;
   }
 };
 
-const getMockResponse = (companyName: string): StockApiResponse => {
-  const upperCaseCompany = companyName.toUpperCase();
-  
-  return {
-    content: {
-      label: `Financial Health Report for ${companyName} (Ticker: ${upperCaseCompany})`,
-      reportData: [
-        {
-          type: "summary",
-          content: `**Company Information:**\n\n**${companyName}** (Ticker: **${upperCaseCompany}**)\n- **Market:** NASDAQ\n- **Sector:** ${upperCaseCompany === 'WMT' ? 'Consumer Discretionary' : 'Technology'}\n- **Last Refreshed:** April 15, 2025\n- **Time Zone:** US/Eastern`
-        },
-        {
-          type: "chart",
-          chartLabel: `Daily Closing Prices of ${upperCaseCompany}`,
-          content: {
-            type: "line",
-            data: {
-              labels: [
-                "2025-01-17", "2025-01-21", "2025-01-22", "2025-01-23", "2025-01-24",
-                "2025-01-27", "2025-01-28", "2025-01-29", "2025-01-30", "2025-03-31",
-                "2025-04-01", "2025-04-02", "2025-04-03", "2025-04-04", "2025-04-07",
-                "2025-04-08", "2025-04-09", "2025-04-10", "2025-04-11", "2025-04-14"
-              ],
-              datasets: [
-                {
-                  label: `${upperCaseCompany} Closing Price`,
-                  data: [
-                    91.94, 93.08, 93.23, 93.81, 99.54, 100.77, 102.46, 102.85, 101.15,
-                    85.63, 85.15, 87.79, 88.83, 89.76, 87.26, 83.19, 83.83, 81.79, 89.6, 90.61
-                  ],
-                  borderColor: "rgba(75, 192, 192, 1)",
-                  backgroundColor: "rgba(75, 192, 192, 0.2)"
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "top"
-                },
-                title: {
-                  display: true,
-                  text: `${companyName} Daily Closing Prices`
-                }
-              }
-            }
-          }
-        },
-        {
-          type: "summary",
-          content: `**Stock Price Trend Analysis:**\n\n- Over the past months, ${upperCaseCompany}'s stock has shown **volatility**, with notable fluctuations ranging from a high of $104.00 to a low near $81.79.\n- The recent trend from April 1 to April 14 shows an **upward trajectory**, with the closing price increasing from $88.83 to $94.73.\n- **Volume** has been significant, particularly on April 9, when it reached over 46 million shares.`
-        },
-        {
-          type: "chart",
-          chartLabel: `Daily Trading Volume of ${upperCaseCompany}`,
-          content: {
-            type: "bar",
-            data: {
-              labels: [
-                "2025-01-17", "2025-02-10", "2025-02-11", "2025-02-12", "2025-02-13",
-                "2025-02-14", "2025-03-25", "2025-03-26", "2025-03-27", "2025-03-28",
-                "2025-03-31", "2025-04-01", "2025-04-02", "2025-04-03", "2025-04-04",
-                "2025-04-07", "2025-04-08", "2025-04-09", "2025-04-10", "2025-04-11"
-              ],
-              datasets: [
-                {
-                  label: "Volume",
-                  data: [
-                    15868213, 23247451, 15567057, 14198438, 14973773, 18880614,
-                    14641621, 11261444, 11012220, 16413893, 20484152, 15201194,
-                    15926717, 13088467, 12451072, 15274644, 11953632, 15162125,
-                    12604413, 14109460
-                  ],
-                  borderColor: "rgba(255, 99, 132, 1)",
-                  backgroundColor: "rgba(255, 99, 132, 0.2)"
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "top"
-                },
-                title: {
-                  display: true,
-                  text: `${companyName} Daily Trading Volume`
-                }
-              }
-            }
-          }
-        },
-        {
-          type: "summary",
-          content: `**Summary of Today's OHLCV Data (April 15, 2025):**\n\n- **Open Price:** $93.27\n- **High Price:** $95.44\n- **Low Price:** $92.90\n- **Close Price:** $94.73\n- **Volume:** 27,742,915`
-        }
-      ]
+// Function to fetch comparison data
+export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "company-report-summarizer-0555",
+      taskInputs: {
+        query: companies
+      }
+    };
+
+    console.log("Fetching comparison data for:", companies);
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
-  };
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching comparison data:", error);
+    throw error;
+  }
+};
+
+// Function to fetch alerts data
+export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "stock-alerts-generator-0333",
+      taskInputs: {
+        query: "latest stock alerts"
+      }
+    };
+
+    console.log("Fetching stock alerts");
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching alerts data:", error);
+    throw error;
+  }
+};
+
+// React Query hooks for data fetching
+export const useStockData = (companyName: string) => {
+  return useQuery({
+    queryKey: ['stockData', companyName],
+    queryFn: () => fetchStockData(companyName),
+    enabled: !!companyName,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1
+  });
+};
+
+export const useComparisonData = (companies: string) => {
+  return useQuery({
+    queryKey: ['comparisonData', companies],
+    queryFn: () => fetchComparisonData(companies),
+    enabled: !!companies,
+    staleTime: 5 * 60 * 1000,
+    retry: 1
+  });
+};
+
+export const useAlertsData = () => {
+  return useQuery({
+    queryKey: ['alertsData'],
+    queryFn: fetchAlertsData,
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    retry: 1
+  });
 };

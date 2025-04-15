@@ -5,55 +5,20 @@ import StockSearch from "@/components/StockComponents/StockSearch";
 import ComparisonCard from "@/components/StockComponents/ComparisonCard";
 import StockChart from "@/components/StockComponents/StockChart";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
+import DynamicChart from "@/components/StockComponents/DynamicChart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeftRight, RefreshCw, AlertCircle, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useComparisonData } from "@/services/stockApi";
+import { useToast } from "@/hooks/use-toast";
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
   const [symbol2, setSymbol2] = useState("");
-  const [showResults, setShowResults] = useState(false);
-
-  // Mock comparison data - in a real app, this would come from an API call
-  const mockComparisonData = {
-    metrics: [
-      { title: "Current Price", value1: "$154.92", value2: "$187.65", winner: 2 as const },
-      { title: "Market Cap", value1: "$2.45T", value2: "$1.87T", winner: 1 as const },
-      { title: "P/E Ratio", value1: "25.6", value2: "32.8", winner: 1 as const },
-      { title: "52-Week High", value1: "$198.23", value2: "$223.41", winner: 2 as const },
-      { title: "52-Week Low", value1: "$124.17", value2: "$142.53", winner: 1 as const },
-      { title: "Dividend Yield", value1: "0.59%", value2: "0.86%", winner: 2 as const },
-    ],
-  };
-
-  // Mock company 1 summary
-  const mockCompany1Summary = [
-    {
-      title: "Company Overview",
-      content: `${symbol1 || "AAPL"} is a leading technology company specializing in consumer electronics, software, and online services.`,
-      type: "neutral" as const,
-    },
-    {
-      title: "Financial Health",
-      content: "Strong balance sheet with significant cash reserves and consistent revenue growth.",
-      type: "positive" as const,
-    },
-  ];
-
-  // Mock company 2 summary
-  const mockCompany2Summary = [
-    {
-      title: "Company Overview",
-      content: `${symbol2 || "MSFT"} is a multinational technology company that develops, manufactures, licenses, supports, and sells computer software, consumer electronics, and related services.`,
-      type: "neutral" as const,
-    },
-    {
-      title: "Financial Health",
-      content: "Excellent financial position with diversified revenue streams and high profit margins.",
-      type: "positive" as const,
-    },
-  ];
+  const [comparisonQuery, setComparisonQuery] = useState("");
+  const { data: apiData, isLoading, error } = useComparisonData(comparisonQuery);
+  const { toast } = useToast();
 
   // Handle search submission for first stock
   const handleSearch1 = (symbol: string) => {
@@ -67,12 +32,15 @@ const Comparison = () => {
     checkAndShowResults(symbol1, symbol);
   };
 
-  // Check if both symbols are entered and show results
+  // Check if both symbols are entered and fetch comparison data
   const checkAndShowResults = (s1: string, s2: string) => {
     if (s1 && s2) {
-      setShowResults(true);
-      // In a real app, you would fetch comparison data here
-      console.log(`Comparing stocks: ${s1} and ${s2}`);
+      const query = `${s1}, ${s2}`;
+      setComparisonQuery(query);
+      toast({
+        description: `Comparing ${s1} with ${s2}...`,
+        duration: 1500,
+      });
     }
   };
 
@@ -81,13 +49,59 @@ const Comparison = () => {
     const temp = symbol1;
     setSymbol1(symbol2);
     setSymbol2(temp);
+    if (symbol1 && symbol2) {
+      setComparisonQuery(`${symbol2}, ${symbol1}`);
+    }
   };
 
   // Clear the comparison
   const handleReset = () => {
     setSymbol1("");
     setSymbol2("");
-    setShowResults(false);
+    setComparisonQuery("");
+  };
+
+  // Generate insight items from company summary
+  const getCompanyInsights = (companyIndex: number) => {
+    if (!apiData || !apiData.content || !apiData.content.companies || 
+        apiData.content.companies.length <= companyIndex) {
+      return [];
+    }
+    
+    const company = apiData.content.companies[companyIndex];
+    
+    return [
+      {
+        title: "Company Overview",
+        content: company.summary,
+        type: "neutral" as const,
+      }
+    ];
+  };
+  
+  // Extract strengths for a company
+  const getCompanyStrengths = (companyIndex: number) => {
+    if (!apiData || !apiData.content || !apiData.content.companies || 
+        apiData.content.companies.length <= companyIndex) {
+      return [];
+    }
+    
+    return apiData.content.companies[companyIndex].strengths || [];
+  };
+
+  // Check if we have valid comparison data
+  const hasComparisonData = apiData && 
+                          apiData.content && 
+                          apiData.content.companies && 
+                          apiData.content.companies.length >= 2;
+
+  // Create chart data
+  const getChartData = (companyIndex: number) => {
+    if (!hasComparisonData) {
+      return null;
+    }
+    
+    return apiData.content.companies[companyIndex].chart || null;
   };
 
   return (
@@ -103,6 +117,8 @@ const Comparison = () => {
                   onSearch={handleSearch1}
                   placeholder="Enter first stock symbol (e.g. AAPL)"
                   buttonText="Set"
+                  value={symbol1}
+                  isLoading={isLoading}
                 />
               </div>
               <div className="flex justify-center md:col-span-1">
@@ -110,7 +126,7 @@ const Comparison = () => {
                   variant="outline"
                   size="icon"
                   onClick={handleSwapSymbols}
-                  disabled={!symbol1 || !symbol2}
+                  disabled={!symbol1 || !symbol2 || isLoading}
                   className="rounded-full"
                 >
                   <ArrowLeftRight className="h-4 w-4" />
@@ -121,12 +137,14 @@ const Comparison = () => {
                   onSearch={handleSearch2}
                   placeholder="Enter second stock symbol (e.g. MSFT)"
                   buttonText="Set"
+                  value={symbol2}
+                  isLoading={isLoading}
                 />
               </div>
             </div>
-            {showResults && (
+            {comparisonQuery && (
               <div className="mt-4 flex justify-end">
-                <Button variant="outline" size="sm" onClick={handleReset}>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={isLoading}>
                   <RefreshCw className="h-3 w-3 mr-2" />
                   Reset Comparison
                 </Button>
@@ -135,7 +153,7 @@ const Comparison = () => {
           </CardContent>
         </Card>
 
-        {!showResults ? (
+        {!comparisonQuery || !hasComparisonData ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
               Enter two stock symbols above to see side-by-side comparison
@@ -153,14 +171,14 @@ const Comparison = () => {
             {/* First section: Company Summaries */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ReportSummary 
-                symbol={symbol1} 
-                insights={mockCompany1Summary}
+                symbol={apiData.content.companies[0]?.symbol || symbol1} 
+                insights={getCompanyInsights(0)}
                 title="Company Summary"
                 icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
               />
               <ReportSummary 
-                symbol={symbol2} 
-                insights={mockCompany2Summary}
+                symbol={apiData.content.companies[1]?.symbol || symbol2} 
+                insights={getCompanyInsights(1)}
                 title="Company Summary"
                 icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
               />
@@ -168,37 +186,57 @@ const Comparison = () => {
 
             {/* Second section: Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StockChart symbol={symbol1} data={[]} />
-              <StockChart symbol={symbol2} data={[]} />
+              {getChartData(0) && (
+                <DynamicChart
+                  type={getChartData(0)!.type}
+                  data={getChartData(0)!.data}
+                  options={getChartData(0)!.options}
+                  chartLabel={`${apiData.content.companies[0]?.symbol || symbol1} Stock Performance`}
+                />
+              )}
+              {getChartData(1) && (
+                <DynamicChart
+                  type={getChartData(1)!.type}
+                  data={getChartData(1)!.data}
+                  options={getChartData(1)!.options}
+                  chartLabel={`${apiData.content.companies[1]?.symbol || symbol2} Stock Performance`}
+                />
+              )}
             </div>
 
             {/* Third section: Comparison Metrics */}
-            <ComparisonCard
-              symbol1={symbol1}
-              symbol2={symbol2}
-              metrics={mockComparisonData.metrics}
-            />
+            {apiData.content.comparison && (
+              <ComparisonCard
+                symbol1={apiData.content.companies[0]?.symbol || symbol1}
+                symbol2={apiData.content.companies[1]?.symbol || symbol2}
+                metrics={apiData.content.comparison}
+              />
+            )}
 
             {/* Fourth section: Key Strengths */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="dashboard-card">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4">{symbol1} Key Strengths</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    {apiData.content.companies[0]?.symbol || symbol1} Key Strengths
+                  </h3>
                   <ul className="list-disc pl-5 space-y-2">
-                    <li className="text-green-700">Higher market capitalization</li>
-                    <li className="text-green-700">Lower P/E ratio (better value)</li>
-                    <li className="text-green-700">Lower 52-week low (more stable price floor)</li>
+                    {getCompanyStrengths(0).map((strength, idx) => (
+                      <li key={idx} className="text-green-700">{strength}</li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>
 
               <Card className="dashboard-card">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4">{symbol2} Key Strengths</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    {apiData.content.companies[1]?.symbol || symbol2} Key Strengths
+                  </h3>
                   <ul className="list-disc pl-5 space-y-2">
-                    <li className="text-green-700">Higher current price</li>
-                    <li className="text-green-700">Higher 52-week high (greater price potential)</li>
-                    <li className="text-green-700">Higher dividend yield (better income)</li>
+                    {getCompanyStrengths(1).map((strength, idx) => (
+                      <li key={idx} className="text-green-700">{strength}</li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>

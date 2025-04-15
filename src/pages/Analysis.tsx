@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
@@ -6,15 +7,17 @@ import ReportSummary from "@/components/StockComponents/ReportSummary";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { fetchStockData, StockApiResponse } from "@/services/stockApi";
+import { useStockData } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
+import { useToast } from "@/hooks/use-toast";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiData, setApiData] = useState<StockApiResponse | null>(null);
+  const { data: apiData, isLoading, error } = useStockData(searchedSymbol);
+  const { toast } = useToast();
 
+  // Extract OHLCV data from API response
   const extractOHLCVData = () => {
     if (!apiData) return null;
     
@@ -37,8 +40,8 @@ const Analysis = () => {
     return {
       symbol: searchedSymbol.toUpperCase(),
       price: parseFloat(closeMatch[1]),
-      change: 0,
-      changePercent: 0,
+      change: 0, // We don't have change information in the API response
+      changePercent: 0, // We don't have percent change information in the API response
       open: parseFloat(openMatch[1]),
       high: parseFloat(highMatch[1]),
       low: parseFloat(lowMatch[1]),
@@ -47,21 +50,19 @@ const Analysis = () => {
     };
   };
 
+  // Handle search submission
   const handleSearch = async (symbol: string) => {
+    if (!symbol.trim()) return;
     setSearchedSymbol(symbol);
-    setIsLoading(true);
     
-    try {
-      const data = await fetchStockData(symbol);
-      setApiData(data);
-      console.log("API Data received:", data);
-    } catch (error) {
-      console.error("Error fetching stock data:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Toast will be automatically shown by Tanstack Query if there's an error
+    toast({
+      description: `Fetching data for ${symbol}...`,
+      duration: 1500,
+    });
   };
 
+  // Extract company summary
   const extractCompanySummary = () => {
     if (!apiData || !apiData.content || !apiData.content.reportData) return [];
     
@@ -78,23 +79,13 @@ const Analysis = () => {
     ];
   };
 
-  const extractAnalysisInsights = () => {
-    if (!apiData || !apiData.content || !apiData.content.reportData) return [];
-    
-    const summaries = apiData.content.reportData.filter(item => item.type === "summary");
-    
-    if (summaries.length < 2 || summaries[1].type !== "summary") return [];
-    
-    return [
-      {
-        title: "Analysis",
-        content: summaries[1].content,
-        type: "positive" as const,
-      }
-    ];
-  };
-
+  // Get stock data for metrics display
   const stockData = extractOHLCVData();
+
+  // Check for errors
+  if (error) {
+    console.error("API Error:", error);
+  }
 
   return (
     <PageLayout>
@@ -156,6 +147,7 @@ const Analysis = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Recent Signals</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* These will be replaced by real alerts in the future */}
                 <CrossoverAlert
                   symbol={searchedSymbol}
                   alertType="MA Crossover"
