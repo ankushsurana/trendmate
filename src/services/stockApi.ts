@@ -100,6 +100,7 @@ const getApiHeaders = () => {
   return {
     'widgetKey': 'a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9',
     'appid': 'uptiq-interns',
+    'agentId': 'trendmate-4009',
     'Content-Type': 'application/json'
   };
 };
@@ -154,7 +155,7 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
   try {
     const request: ApiRequest = {
       appId: "uptiq-interns",
-      integrationId: "stock-alerts-generator-0333",
+      integrationId: "trigger-real-time-alerts-6475",
       taskInputs: {
         query: "latest stock alerts"
       }
