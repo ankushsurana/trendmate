@@ -1,41 +1,12 @@
 
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
-import StockSearch from "@/components/StockComponents/StockSearch";
-import ComparisonCard from "@/components/StockComponents/ComparisonCard";
-import DynamicChart from "@/components/StockComponents/DynamicChart";
-import MarkdownContent from "@/components/StockComponents/MarkdownContent";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeftRight, RefreshCw, AlertCircle } from "lucide-react";
+import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
+import ComparisonReport from "@/components/StockComponents/ComparisonReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { useComparisonData } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
-
-// Define types for report items
-interface ChartContent {
-  type: string;
-  data: any;
-  options: any;
-}
-
-interface SummaryItem {
-  type: "summary";
-  content: string;
-}
-
-interface ChartItem {
-  type: "chart";
-  chartLabel: string;
-  content: ChartContent;
-}
-
-interface TableItem {
-  type: "table";
-  content: string;
-}
-
-type ReportDataItem = SummaryItem | ChartItem | TableItem;
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
@@ -79,105 +50,23 @@ const Comparison = () => {
     setSymbol2("");
     setComparisonQuery("");
   };
-  
-  // Render report data from the new format
-  const renderReportData = () => {
-    if (!apiData?.content?.reportData) {
-      return null;
-    }
-    
-    return apiData.content.reportData.map((item: ReportDataItem, index: number) => {
-      if (item.type === "summary") {
-        const summaryItem = item as SummaryItem;
-        return (
-          <div key={index} className="mb-6">
-            <MarkdownContent content={summaryItem.content} />
-          </div>
-        );
-      } else if (item.type === "chart") {
-        const chartItem = item as ChartItem;
-        return (
-          <div key={index} className="mb-6">
-            <DynamicChart
-              type={chartItem.content.type}
-              data={chartItem.content.data}
-              options={chartItem.content.options}
-              chartLabel={chartItem.chartLabel || ""}
-            />
-          </div>
-        );
-      } else if (item.type === "table") {
-        const tableItem = item as TableItem;
-        return (
-          <div key={index} className="mb-6">
-            <Card className="dashboard-card">
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <div dangerouslySetInnerHTML={{ __html: tableItem.content }} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      }
-      return null;
-    });
-  };
-
-  // Handle legacy format from previous implementation
-  const hasLegacyComparisonData = apiData &&
-    apiData.content &&
-    apiData.content.companies &&
-    apiData.content.companies.length >= 2;
 
   return (
     <PageLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Company Comparison</h1>
+        <h1 className="text-3xl font-bold text-trendmate-dark mb-8">
+          Company Comparison
+        </h1>
 
-        <Card className="dashboard-card">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
-              <div className="md:col-span-5">
-                <StockSearch
-                  onSearch={handleSearch1}
-                  placeholder="Enter first stock symbol (e.g. AAPL)"
-                  buttonText="Set"
-                  value={symbol1}
-                  isLoading={isLoading}
-                />
-              </div>
-              <div className="flex justify-center md:col-span-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleSwapSymbols}
-                  disabled={!symbol1 || !symbol2 || isLoading}
-                  className="rounded-full"
-                >
-                  <ArrowLeftRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="md:col-span-5">
-                <StockSearch
-                  onSearch={handleSearch2}
-                  placeholder="Enter second stock symbol (e.g. MSFT)"
-                  buttonText="Set"
-                  value={symbol2}
-                  isLoading={isLoading}
-                />
-              </div>
-            </div>
-            {comparisonQuery && (
-              <div className="mt-4 flex justify-end">
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={isLoading}>
-                  <RefreshCw className="h-3 w-3 mr-2" />
-                  Reset Comparison
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ComparisonSearch
+          symbol1={symbol1}
+          symbol2={symbol2}
+          isLoading={isLoading}
+          onSearch1={handleSearch1}
+          onSearch2={handleSearch2}
+          onSwap={handleSwapSymbols}
+          onReset={handleReset}
+        />
 
         {!comparisonQuery ? (
           <div className="mt-8 text-center py-16">
@@ -187,7 +76,9 @@ const Comparison = () => {
           </div>
         ) : isLoading ? (
           <div className="mt-8 text-center py-16">
-            <div className="text-trendmate-gray text-lg">Loading comparison data...</div>
+            <div className="text-trendmate-gray text-lg">
+              Loading comparison data...
+            </div>
           </div>
         ) : error ? (
           <div className="mt-8">
@@ -199,85 +90,11 @@ const Comparison = () => {
             </Alert>
           </div>
         ) : (
-          <div className="mt-8 space-y-8">
-            <Alert variant="default" className="bg-amber-50 border border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-700" />
-              <AlertDescription className="text-amber-800">
-                AI can assist, but always invest with caution — the market has a mind of its own.
-              </AlertDescription>
-            </Alert>
-
-            {/* Report Title */}
-            {apiData?.content?.label && (
-              <h2 className="text-2xl font-bold text-center my-6">{apiData.content.label}</h2>
-            )}
-
-            {/* Handle new format */}
-            {apiData?.content?.reportData ? (
-              <div className="space-y-6">
-                {renderReportData()}
-              </div>
-            ) : hasLegacyComparisonData ? (
-              // Legacy format rendering
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {apiData.content.companies.map((company, index) => (
-                    <div key={index}>
-                      <MarkdownContent 
-                        content={company.summary} 
-                        title={`${company.symbol} Company Summary`} 
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {apiData.content.companies.map((company, index) => (
-                    company.chart && (
-                      <DynamicChart
-                        key={index}
-                        type={company.chart.type}
-                        data={company.chart.data}
-                        options={company.chart.options}
-                        chartLabel={`${company.symbol} Stock Performance`}
-                      />
-                    )
-                  ))}
-                </div>
-
-                {apiData.content.comparison && (
-                  <ComparisonCard
-                    symbol1={apiData.content.companies[0]?.symbol || symbol1}
-                    symbol2={apiData.content.companies[1]?.symbol || symbol2}
-                    metrics={apiData.content.comparison}
-                  />
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {apiData.content.companies.map((company, index) => (
-                    <Card key={index} className="dashboard-card">
-                      <CardContent className="p-6">
-                        <h3 className="text-lg font-medium mb-4">
-                          {company.symbol} Key Strengths
-                        </h3>
-                        <ul className="list-disc pl-5 space-y-2">
-                          {company.strengths?.map((strength, idx) => (
-                            <li key={idx} className="text-green-700">{strength}</li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="mt-8 text-center py-16">
-                <div className="text-trendmate-gray text-lg">
-                  No comparison data available for the selected symbols.
-                </div>
-              </div>
-            )}
-          </div>
+          <ComparisonReport 
+            data={apiData} 
+            symbol1={symbol1} 
+            symbol2={symbol2} 
+          />
         )}
       </div>
     </PageLayout>
