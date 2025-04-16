@@ -37,6 +37,7 @@ interface ChartOptions {
       text: string;
     };
   };
+  scales?: any;
 }
 
 interface ChartContent {
@@ -56,7 +57,12 @@ interface ChartItem {
   content: ChartContent;
 }
 
-type ReportDataItem = SummaryItem | ChartItem;
+interface TableItem {
+  type: "table";
+  content: string;
+}
+
+type ReportDataItem = SummaryItem | ChartItem | TableItem;
 
 export interface StockApiResponse {
   content: {
@@ -67,7 +73,9 @@ export interface StockApiResponse {
 
 interface ComparisonApiResponse {
   content: {
-    companies: Array<{
+    label?: string;
+    reportData?: ReportDataItem[];
+    companies?: Array<{
       name: string;
       symbol: string;
       metrics: Record<string, string | number>;
@@ -75,7 +83,7 @@ interface ComparisonApiResponse {
       strengths: string[];
       chart: ChartContent;
     }>;
-    comparison: Array<{
+    comparison?: Array<{
       title: string;
       value1: string | number;
       value2: string | number;
@@ -120,9 +128,13 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
       body: JSON.stringify(request)
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${await response.text()}`);
+    }
 
     return await response.json();
   } catch (error) {
+    console.error("Error fetching stock data:", error);
     throw error;
   }
 };
@@ -137,15 +149,19 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
       }
     };
 
-
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${await response.text()}`);
+    }
+
     return await response.json();
   } catch (error) {
+    console.error("Error fetching comparison data:", error);
     throw error;
   }
 };
@@ -160,17 +176,19 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
       }
     };
 
-
-
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${await response.text()}`);
+    }
+
     return await response.json();
   } catch (error) {
-
+    console.error("Error fetching alerts data:", error);
     throw error;
   }
 };
@@ -180,7 +198,7 @@ export const useStockData = (companyName: string) => {
     queryKey: ['stockData', companyName],
     queryFn: () => fetchStockData(companyName),
     enabled: !!companyName,
-
+    retry: 1
   });
 };
 
@@ -189,7 +207,7 @@ export const useComparisonData = (companies: string) => {
     queryKey: ['comparisonData', companies],
     queryFn: () => fetchComparisonData(companies),
     enabled: !!companies,
-
+    retry: 1
   });
 };
 

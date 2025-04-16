@@ -3,15 +3,28 @@ import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import ComparisonCard from "@/components/StockComponents/ComparisonCard";
-import StockChart from "@/components/StockComponents/StockChart";
-import ReportSummary from "@/components/StockComponents/ReportSummary";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
+import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeftRight, RefreshCw, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeftRight, RefreshCw, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useComparisonData } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface ChartData {
+  type: string;
+  data: any;
+  options: any;
+}
+
+interface ReportItem {
+  type: string;
+  content?: string;
+  chartLabel?: string;
+  content?: string | ChartData;
+}
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
@@ -55,45 +68,55 @@ const Comparison = () => {
     setSymbol2("");
     setComparisonQuery("");
   };
-
-  const getCompanyInsights = (companyIndex: number) => {
-    if (!apiData || !apiData.content || !apiData.content.companies ||
-      apiData.content.companies.length <= companyIndex) {
-      return [];
+  
+  // Render report data from the new format
+  const renderReportData = () => {
+    if (!apiData || !apiData.content || !apiData.content.reportData) {
+      return null;
     }
-
-    const company = apiData.content.companies[companyIndex];
-
-    return [
-      {
-        title: "Company Overview",
-        content: company.summary,
-        type: "neutral" as const,
+    
+    return apiData.content.reportData.map((item: ReportItem, index: number) => {
+      if (item.type === "summary") {
+        return (
+          <div key={index} className="mb-6">
+            <MarkdownContent content={item.content as string} />
+          </div>
+        );
+      } else if (item.type === "chart" && item.content) {
+        const chartData = item.content as ChartData;
+        return (
+          <div key={index} className="mb-6">
+            <DynamicChart
+              type={chartData.type}
+              data={chartData.data}
+              options={chartData.options}
+              chartLabel={item.chartLabel || ""}
+            />
+          </div>
+        );
+      } else if (item.type === "table" && item.content) {
+        // Handle table content
+        return (
+          <div key={index} className="mb-6">
+            <Card className="dashboard-card">
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <div dangerouslySetInnerHTML={{ __html: item.content as string }} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
       }
-    ];
+      return null;
+    });
   };
 
-  const getCompanyStrengths = (companyIndex: number) => {
-    if (!apiData || !apiData.content || !apiData.content.companies ||
-      apiData.content.companies.length <= companyIndex) {
-      return [];
-    }
-
-    return apiData.content.companies[companyIndex].strengths || [];
-  };
-
-  const hasComparisonData = apiData &&
+  // Handle legacy format from previous implementation
+  const hasLegacyComparisonData = apiData &&
     apiData.content &&
     apiData.content.companies &&
     apiData.content.companies.length >= 2;
-
-  const getChartData = (companyIndex: number) => {
-    if (!hasComparisonData) {
-      return null;
-    }
-
-    return apiData.content.companies[companyIndex].chart || null;
-  };
 
   return (
     <PageLayout>
@@ -144,11 +167,24 @@ const Comparison = () => {
           </CardContent>
         </Card>
 
-        {!comparisonQuery || !hasComparisonData ? (
+        {!comparisonQuery ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
               Enter two stock symbols above to see side-by-side comparison
             </div>
+          </div>
+        ) : isLoading ? (
+          <div className="mt-8 text-center py-16">
+            <div className="text-trendmate-gray text-lg">Loading comparison data...</div>
+          </div>
+        ) : error ? (
+          <div className="mt-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading comparison data. Please try again.
+              </AlertDescription>
+            </Alert>
           </div>
         ) : (
           <div className="mt-8 space-y-8">
@@ -159,79 +195,71 @@ const Comparison = () => {
               </AlertDescription>
             </Alert>
 
-            {/* First section: Company Summaries */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ReportSummary
-                symbol={apiData.content.companies[0]?.symbol || symbol1}
-                insights={getCompanyInsights(0)}
-                title="Company Summary"
-                icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
-              />
-              <ReportSummary
-                symbol={apiData.content.companies[1]?.symbol || symbol2}
-                insights={getCompanyInsights(1)}
-                title="Company Summary"
-                icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
-              />
-            </div>
+            {/* Handle new format */}
+            {apiData?.content?.reportData ? (
+              <div className="space-y-6">
+                {renderReportData()}
+              </div>
+            ) : hasLegacyComparisonData ? (
+              // Legacy format rendering
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {apiData.content.companies.map((company, index) => (
+                    <div key={index}>
+                      <MarkdownContent 
+                        content={company.summary} 
+                        title={`${company.symbol} Company Summary`} 
+                      />
+                    </div>
+                  ))}
+                </div>
 
-            {/* Second section: Charts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {getChartData(0) && (
-                <DynamicChart
-                  type={getChartData(0)!.type}
-                  data={getChartData(0)!.data}
-                  options={getChartData(0)!.options}
-                  chartLabel={`${apiData.content.companies[0]?.symbol || symbol1} Stock Performance`}
-                />
-              )}
-              {getChartData(1) && (
-                <DynamicChart
-                  type={getChartData(1)!.type}
-                  data={getChartData(1)!.data}
-                  options={getChartData(1)!.options}
-                  chartLabel={`${apiData.content.companies[1]?.symbol || symbol2} Stock Performance`}
-                />
-              )}
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {apiData.content.companies.map((company, index) => (
+                    company.chart && (
+                      <DynamicChart
+                        key={index}
+                        type={company.chart.type}
+                        data={company.chart.data}
+                        options={company.chart.options}
+                        chartLabel={`${company.symbol} Stock Performance`}
+                      />
+                    )
+                  ))}
+                </div>
 
-            {/* Third section: Comparison Metrics */}
-            {apiData.content.comparison && (
-              <ComparisonCard
-                symbol1={apiData.content.companies[0]?.symbol || symbol1}
-                symbol2={apiData.content.companies[1]?.symbol || symbol2}
-                metrics={apiData.content.comparison}
-              />
+                {apiData.content.comparison && (
+                  <ComparisonCard
+                    symbol1={apiData.content.companies[0]?.symbol || symbol1}
+                    symbol2={apiData.content.companies[1]?.symbol || symbol2}
+                    metrics={apiData.content.comparison}
+                  />
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {apiData.content.companies.map((company, index) => (
+                    <Card key={index} className="dashboard-card">
+                      <CardContent className="p-6">
+                        <h3 className="text-lg font-medium mb-4">
+                          {company.symbol} Key Strengths
+                        </h3>
+                        <ul className="list-disc pl-5 space-y-2">
+                          {company.strengths?.map((strength, idx) => (
+                            <li key={idx} className="text-green-700">{strength}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="mt-8 text-center py-16">
+                <div className="text-trendmate-gray text-lg">
+                  No comparison data available for the selected symbols.
+                </div>
+              </div>
             )}
-
-            {/* Fourth section: Key Strengths */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="dashboard-card">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4">
-                    {apiData.content.companies[0]?.symbol || symbol1} Key Strengths
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-2">
-                    {getCompanyStrengths(0).map((strength, idx) => (
-                      <li key={idx} className="text-green-700">{strength}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="dashboard-card">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4">
-                    {apiData.content.companies[1]?.symbol || symbol2} Key Strengths
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-2">
-                    {getCompanyStrengths(1).map((strength, idx) => (
-                      <li key={idx} className="text-green-700">{strength}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         )}
       </div>

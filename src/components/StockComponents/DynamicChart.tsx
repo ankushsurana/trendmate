@@ -16,16 +16,17 @@ interface ChartData {
 }
 
 interface ChartOptions {
-  responsive: boolean;
-  plugins: {
-    legend: {
-      position: string;
+  responsive?: boolean;
+  plugins?: {
+    legend?: {
+      position?: string;
     };
-    title: {
-      display: boolean;
-      text: string;
+    title?: {
+      display?: boolean;
+      text?: string;
     };
   };
+  scales?: any;
 }
 
 interface DynamicChartProps {

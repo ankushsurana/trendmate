@@ -8,12 +8,16 @@ interface MarkdownContentProps {
 }
 
 const parseMarkdown = (markdown: string): string => {
+  // If the content already contains HTML tags, return it as is
+  if (markdown.includes('<') && markdown.includes('>')) {
+    return markdown;
+  }
+
   let html = markdown;
 
+  // Apply basic Markdown transformations only if it's plain text
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
   html = html.replace(/\n/g, '<br>');
 
   return html;
