@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 
 // API URL and Headers
@@ -217,6 +216,88 @@ export const useAlertsData = () => {
     queryFn: fetchAlertsData,
     staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    retry: 1
+  });
+};
+
+interface CardSelectResponse {
+  options: Array<{
+    label: string;
+    value: string;
+    subTitle: string;
+  }>;
+  type: "cardSelect";
+  subTitleField: string;
+}
+
+export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "workflow-for-fetch-real-time-data-copy-1741346734879",
+      taskInputs: {
+        query
+      }
+    };
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${await response.text()}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching company options:", error);
+    throw error;
+  }
+};
+
+export const selectCompany = async (companyName: string): Promise<any> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "select-company-9826",
+      taskInputs: {
+        query: companyName
+      }
+    };
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${await response.text()}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error selecting company:", error);
+    throw error;
+  }
+};
+
+export const useCompanySearch = (query: string) => {
+  return useQuery({
+    queryKey: ['companySearch', query],
+    queryFn: () => fetchCompanyOptions(query),
+    enabled: !!query && query.length >= 2,
+    retry: 1
+  });
+};
+
+export const useCompanySelect = (companyName: string) => {
+  return useQuery({
+    queryKey: ['companySelect', companyName],
+    queryFn: () => selectCompany(companyName),
+    enabled: false,
     retry: 1
   });
 };
