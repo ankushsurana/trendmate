@@ -11,20 +11,31 @@ import { ArrowLeftRight, RefreshCw, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useComparisonData } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-interface ChartData {
+// Define types for report items
+interface ChartContent {
   type: string;
   data: any;
   options: any;
 }
 
-interface ReportItem {
-  type: string;
-  content?: string;
-  chartLabel?: string;
-  content?: string | ChartData;
+interface SummaryItem {
+  type: "summary";
+  content: string;
 }
+
+interface ChartItem {
+  type: "chart";
+  chartLabel: string;
+  content: ChartContent;
+}
+
+interface TableItem {
+  type: "table";
+  content: string;
+}
+
+type ReportDataItem = SummaryItem | ChartItem | TableItem;
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
@@ -71,37 +82,38 @@ const Comparison = () => {
   
   // Render report data from the new format
   const renderReportData = () => {
-    if (!apiData || !apiData.content || !apiData.content.reportData) {
+    if (!apiData?.content?.reportData) {
       return null;
     }
     
-    return apiData.content.reportData.map((item: ReportItem, index: number) => {
+    return apiData.content.reportData.map((item: ReportDataItem, index: number) => {
       if (item.type === "summary") {
+        const summaryItem = item as SummaryItem;
         return (
           <div key={index} className="mb-6">
-            <MarkdownContent content={item.content as string} />
+            <MarkdownContent content={summaryItem.content} />
           </div>
         );
-      } else if (item.type === "chart" && item.content) {
-        const chartData = item.content as ChartData;
+      } else if (item.type === "chart") {
+        const chartItem = item as ChartItem;
         return (
           <div key={index} className="mb-6">
             <DynamicChart
-              type={chartData.type}
-              data={chartData.data}
-              options={chartData.options}
-              chartLabel={item.chartLabel || ""}
+              type={chartItem.content.type}
+              data={chartItem.content.data}
+              options={chartItem.content.options}
+              chartLabel={chartItem.chartLabel || ""}
             />
           </div>
         );
-      } else if (item.type === "table" && item.content) {
-        // Handle table content
+      } else if (item.type === "table") {
+        const tableItem = item as TableItem;
         return (
           <div key={index} className="mb-6">
             <Card className="dashboard-card">
               <CardContent className="p-6">
                 <div className="overflow-x-auto">
-                  <div dangerouslySetInnerHTML={{ __html: item.content as string }} />
+                  <div dangerouslySetInnerHTML={{ __html: tableItem.content }} />
                 </div>
               </CardContent>
             </Card>
@@ -194,6 +206,11 @@ const Comparison = () => {
                 AI can assist, but always invest with caution — the market has a mind of its own.
               </AlertDescription>
             </Alert>
+
+            {/* Report Title */}
+            {apiData?.content?.label && (
+              <h2 className="text-2xl font-bold text-center my-6">{apiData.content.label}</h2>
+            )}
 
             {/* Handle new format */}
             {apiData?.content?.reportData ? (
