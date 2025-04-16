@@ -98,43 +98,35 @@ interface AlertsApiResponse {
 
 const getApiHeaders = () => {
   return {
-    'widgetKey': 'a6YkfZChaWHFUcJBCjTLWJvETh0L17FJlvVJIi9',
+    'widgetKey': 'a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9',
     'appid': 'uptiq-interns',
     'Content-Type': 'application/json'
   };
 };
 
-// Function to fetch stock analysis data
 export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
   try {
     const request: ApiRequest = {
       appId: "uptiq-interns",
       integrationId: "fetch-real-time-data-0202",
       taskInputs: {
-        query: `${companyName} current stock price`
+        query: `${companyName}`
       }
     };
 
-    console.log("Fetching analysis data for:", companyName);
-    
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    
+
+
     return await response.json();
   } catch (error) {
-    console.error("Error fetching stock data:", error);
     throw error;
   }
 };
 
-// Function to fetch comparison data
 export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
   try {
     const request: ApiRequest = {
@@ -145,26 +137,19 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
       }
     };
 
-    console.log("Fetching comparison data for:", companies);
-    
+
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    
+
     return await response.json();
   } catch (error) {
-    console.error("Error fetching comparison data:", error);
     throw error;
   }
 };
 
-// Function to fetch alerts data
 export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
   try {
     const request: ApiRequest = {
@@ -175,33 +160,27 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
       }
     };
 
-    console.log("Fetching stock alerts");
-    
+
+
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    
+
     return await response.json();
   } catch (error) {
-    console.error("Error fetching alerts data:", error);
+
     throw error;
   }
 };
 
-// React Query hooks for data fetching
 export const useStockData = (companyName: string) => {
   return useQuery({
     queryKey: ['stockData', companyName],
     queryFn: () => fetchStockData(companyName),
     enabled: !!companyName,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1
+
   });
 };
 
@@ -210,8 +189,7 @@ export const useComparisonData = (companies: string) => {
     queryKey: ['comparisonData', companies],
     queryFn: () => fetchComparisonData(companies),
     enabled: !!companies,
-    staleTime: 5 * 60 * 1000,
-    retry: 1
+
   });
 };
 
@@ -219,8 +197,8 @@ export const useAlertsData = () => {
   return useQuery({
     queryKey: ['alertsData'],
     queryFn: fetchAlertsData,
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
     retry: 1
   });
 };

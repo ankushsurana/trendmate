@@ -4,7 +4,6 @@ import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
-import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStockData } from "@/services/stockApi";
@@ -17,31 +16,30 @@ const Analysis = () => {
   const { data: apiData, isLoading, error } = useStockData(searchedSymbol);
   const { toast } = useToast();
 
-  // Extract OHLCV data from API response
   const extractOHLCVData = () => {
     if (!apiData) return null;
-    
+
     const ohlcvSummary = apiData.content.reportData.find(
       (item) => item.type === "summary" && item.content.includes("OHLCV")
     );
-    
+
     if (!ohlcvSummary || ohlcvSummary.type !== "summary") return null;
-    
+
     const content = ohlcvSummary.content;
-    
+
     const openMatch = content.match(/Open Price:\s*\$([0-9.]+)/);
     const highMatch = content.match(/High Price:\s*\$([0-9.]+)/);
     const lowMatch = content.match(/Low Price:\s*\$([0-9.]+)/);
     const closeMatch = content.match(/Close Price:\s*\$([0-9.]+)/);
     const volumeMatch = content.match(/Volume:\s*([0-9,]+)/);
-    
+
     if (!openMatch || !highMatch || !lowMatch || !closeMatch) return null;
-    
+
     return {
       symbol: searchedSymbol.toUpperCase(),
       price: parseFloat(closeMatch[1]),
-      change: 0, // We don't have change information in the API response
-      changePercent: 0, // We don't have percent change information in the API response
+      change: 0,
+      changePercent: 0,
       open: parseFloat(openMatch[1]),
       high: parseFloat(highMatch[1]),
       low: parseFloat(lowMatch[1]),
@@ -50,42 +48,33 @@ const Analysis = () => {
     };
   };
 
-  // Handle search submission
   const handleSearch = async (symbol: string) => {
     if (!symbol.trim()) return;
     setSearchedSymbol(symbol);
-    
-    // Toast will be automatically shown by Tanstack Query if there's an error
+
     toast({
       description: `Fetching data for ${symbol}...`,
       duration: 1500,
     });
   };
 
-  // Extract company summary
   const extractCompanySummary = () => {
     if (!apiData || !apiData.content || !apiData.content.reportData) return [];
-    
+
     const firstSummary = apiData.content.reportData.find(item => item.type === "summary");
-    
+
     if (!firstSummary || firstSummary.type !== "summary") return [];
-    
+
     return [
       {
         title: "Company Overview",
         content: firstSummary.content,
-        type: "neutral" as const,
       }
     ];
   };
 
-  // Get stock data for metrics display
   const stockData = extractOHLCVData();
 
-  // Check for errors
-  if (error) {
-    console.error("API Error:", error);
-  }
 
   return (
     <PageLayout>
@@ -108,13 +97,13 @@ const Analysis = () => {
                 AI can assist, but always invest with caution — the market has a mind of its own.
               </AlertDescription>
             </Alert>
-            
-            <ReportSummary 
-              symbol={searchedSymbol} 
-              insights={extractCompanySummary()} 
-              title="Company Summary" 
+
+            <ReportSummary
+              symbol={searchedSymbol}
+              insights={extractCompanySummary()}
+              title="Company Summary"
             />
-            
+
             {apiData.content.reportData.map((item, index) => {
               if (item.type === "chart") {
                 return (
@@ -144,25 +133,7 @@ const Analysis = () => {
               </div>
             )}
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Recent Signals</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* These will be replaced by real alerts in the future */}
-                <CrossoverAlert
-                  symbol={searchedSymbol}
-                  alertType="MA Crossover"
-                  message="20-day EMA crossed above 50-day EMA, indicating a bullish signal."
-                  timestamp="2 hours ago"
-                  isImportant={true}
-                />
-                <CrossoverAlert
-                  symbol={searchedSymbol}
-                  alertType="Volume Alert"
-                  message="Trading volume is 25% higher than the 30-day average."
-                  timestamp="1 day ago"
-                />
-              </div>
-            </div>
+
           </div>
         )}
       </div>

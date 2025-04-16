@@ -20,19 +20,16 @@ const Comparison = () => {
   const { data: apiData, isLoading, error } = useComparisonData(comparisonQuery);
   const { toast } = useToast();
 
-  // Handle search submission for first stock
   const handleSearch1 = (symbol: string) => {
     setSymbol1(symbol);
     checkAndShowResults(symbol, symbol2);
   };
 
-  // Handle search submission for second stock
   const handleSearch2 = (symbol: string) => {
     setSymbol2(symbol);
     checkAndShowResults(symbol1, symbol);
   };
 
-  // Check if both symbols are entered and fetch comparison data
   const checkAndShowResults = (s1: string, s2: string) => {
     if (s1 && s2) {
       const query = `${s1}, ${s2}`;
@@ -44,7 +41,6 @@ const Comparison = () => {
     }
   };
 
-  // Swap the two symbols
   const handleSwapSymbols = () => {
     const temp = symbol1;
     setSymbol1(symbol2);
@@ -54,22 +50,20 @@ const Comparison = () => {
     }
   };
 
-  // Clear the comparison
   const handleReset = () => {
     setSymbol1("");
     setSymbol2("");
     setComparisonQuery("");
   };
 
-  // Generate insight items from company summary
   const getCompanyInsights = (companyIndex: number) => {
-    if (!apiData || !apiData.content || !apiData.content.companies || 
-        apiData.content.companies.length <= companyIndex) {
+    if (!apiData || !apiData.content || !apiData.content.companies ||
+      apiData.content.companies.length <= companyIndex) {
       return [];
     }
-    
+
     const company = apiData.content.companies[companyIndex];
-    
+
     return [
       {
         title: "Company Overview",
@@ -78,29 +72,26 @@ const Comparison = () => {
       }
     ];
   };
-  
-  // Extract strengths for a company
+
   const getCompanyStrengths = (companyIndex: number) => {
-    if (!apiData || !apiData.content || !apiData.content.companies || 
-        apiData.content.companies.length <= companyIndex) {
+    if (!apiData || !apiData.content || !apiData.content.companies ||
+      apiData.content.companies.length <= companyIndex) {
       return [];
     }
-    
+
     return apiData.content.companies[companyIndex].strengths || [];
   };
 
-  // Check if we have valid comparison data
-  const hasComparisonData = apiData && 
-                          apiData.content && 
-                          apiData.content.companies && 
-                          apiData.content.companies.length >= 2;
+  const hasComparisonData = apiData &&
+    apiData.content &&
+    apiData.content.companies &&
+    apiData.content.companies.length >= 2;
 
-  // Create chart data
   const getChartData = (companyIndex: number) => {
     if (!hasComparisonData) {
       return null;
     }
-    
+
     return apiData.content.companies[companyIndex].chart || null;
   };
 
@@ -170,14 +161,14 @@ const Comparison = () => {
 
             {/* First section: Company Summaries */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ReportSummary 
-                symbol={apiData.content.companies[0]?.symbol || symbol1} 
+              <ReportSummary
+                symbol={apiData.content.companies[0]?.symbol || symbol1}
                 insights={getCompanyInsights(0)}
                 title="Company Summary"
                 icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
               />
-              <ReportSummary 
-                symbol={apiData.content.companies[1]?.symbol || symbol2} 
+              <ReportSummary
+                symbol={apiData.content.companies[1]?.symbol || symbol2}
                 insights={getCompanyInsights(1)}
                 title="Company Summary"
                 icon={<FileText className="mr-2 h-5 w-5 text-trendmate-purple" />}
