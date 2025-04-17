@@ -1,4 +1,3 @@
-
 // Import dependencies
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -169,12 +168,12 @@ export async function makeApiRequest(integrationId: string, query: string) {
 
 // API function to fetch company options
 export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
-  return makeApiRequest(COMPANY_SEARCH_INTEGRATION_ID, query);
+  return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
 };
 
 // API function to select a company
 export const selectCompany = async (companyName: string): Promise<any> => {
-  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companyName);
+  return makeApiRequest('select-company-9826', companyName);
 };
 
 // Custom hook for company search
@@ -182,9 +181,8 @@ export const useCompanySearch = (query: string) => {
   return useQuery({
     queryKey: ['companySearch', query],
     queryFn: () => fetchCompanyOptions(query),
-    enabled: !!query && query.length >= 2,
+    enabled: false, // Don't auto-fetch, we'll manually trigger with refetch
     refetchOnWindowFocus: false,
-    staleTime: 60 * 1000,  // 1 minute
   });
 };
 
@@ -193,8 +191,8 @@ export const useCompanySelect = (companyName: string) => {
   return useQuery({
     queryKey: ['companySelect', companyName],
     queryFn: () => selectCompany(companyName),
-    enabled: false,  // Never automatically run this query
-    refetchOnWindowFocus: false
+    enabled: false, // Don't auto-fetch, we'll manually trigger with refetch
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -202,7 +200,7 @@ export const useCompanySelect = (companyName: string) => {
 
 // API function to fetch stock data
 export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
-  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companyName);
+  return makeApiRequest('select-company-9826', companyName);
 };
 
 // Custom hook for stock data
@@ -219,7 +217,7 @@ export const useStockData = (companyName: string) => {
 
 // API function to fetch comparison data
 export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
-  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companies);
+  return makeApiRequest('select-company-9826', companies);
 };
 
 // Custom hook for comparison data
@@ -237,7 +235,7 @@ export const useComparisonData = (companies: string) => {
 // API function to create a new alert
 export const createAlert = async (alertData: AlertFormData): Promise<any> => {
   const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
-  return makeApiRequest(ALERT_CREATE_INTEGRATION_ID, query);
+  return makeApiRequest('alert-table-2938', query);
 };
 
 // Mock data for alerts since the real API is not working

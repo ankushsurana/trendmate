@@ -5,58 +5,95 @@ import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
 import ComparisonReport from "@/components/StockComponents/ComparisonReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useComparisonData } from "@/services/stockApi";
+import { useCompanySearch, useCompanySelect } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
   const [symbol2, setSymbol2] = useState("");
-  const [comparisonQuery, setComparisonQuery] = useState("");
-  
-  const { data: apiData, isLoading: isLoadingComparison, isError: isComparisonError } = useComparisonData(comparisonQuery);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showCards, setShowCards] = useState(false);
+  const [isFirstCompanySelected, setIsFirstCompanySelected] = useState(false);
+  const [selectedSymbol1, setSelectedSymbol1] = useState("");
+  const [selectedSymbol2, setSelectedSymbol2] = useState("");
   
   const { toast } = useToast();
   
-  const handleSearch1 = (symbol: string) => {
-    setSymbol1(symbol);
-    
-    toast({
-      description: `Selected first company: ${symbol}`,
-      duration: 1500,
-    });
+  const { 
+    data: companyOptions, 
+    isLoading: isSearching,
+    refetch: searchCompanies
+  } = useCompanySearch(searchQuery);
+
+  const {
+    data: comparisonData,
+    isLoading: isLoadingComparison,
+    refetch: selectCompany
+  } = useCompanySelect("");
+
+  const handleSymbol1Change = (value: string) => {
+    setSymbol1(value);
   };
 
-  const handleSearch2 = (symbol: string) => {
-    setSymbol2(symbol);
-    
-    toast({
-      description: `Selected second company: ${symbol}`,
-      duration: 1500,
-    });
+  const handleSymbol2Change = (value: string) => {
+    setSymbol2(value);
   };
 
-  const handleCompare = () => {
-    if (symbol1 && symbol2) {
+  const handleCompare = async () => {
+    const query = `${symbol1}, ${symbol2}`;
+    setSearchQuery(query);
+    setShowCards(true);
+    setIsFirstCompanySelected(false);
+    
+    toast({
+      description: "Searching for companies...",
+      duration: 1500,
+    });
+
+    await searchCompanies();
+  };
+
+  const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
+    if (isFirstCompany) {
+      setSelectedSymbol1(company.value);
+      setIsFirstCompanySelected(true);
+      
+      // Call select-company-9826 API for first company
+      await selectCompany();
+      
+      // After first company is selected, show cards for second company
       const query = `${symbol1}, ${symbol2}`;
-      setComparisonQuery(query);
+      setSearchQuery(query);
       
       toast({
-        description: `Comparing ${symbol1} with ${symbol2}...`,
+        description: `Selected ${company.label} as first company`,
+        duration: 1500,
+      });
+    } else {
+      setSelectedSymbol2(company.value);
+      setShowCards(false);
+      
+      toast({
+        description: `Selected ${company.label} as second company. Generating comparison...`,
         duration: 1500,
       });
     }
   };
 
   const handleSwapSymbols = () => {
-    const temp = symbol1;
+    const tempSymbol = symbol1;
     setSymbol1(symbol2);
-    setSymbol2(temp);
+    setSymbol2(tempSymbol);
   };
 
   const handleReset = () => {
     setSymbol1("");
     setSymbol2("");
-    setComparisonQuery("");
+    setSearchQuery("");
+    setShowCards(false);
+    setIsFirstCompanySelected(false);
+    setSelectedSymbol1("");
+    setSelectedSymbol2("");
   };
 
   return (
@@ -69,52 +106,38 @@ const Comparison = () => {
         <ComparisonSearch
           symbol1={symbol1}
           symbol2={symbol2}
-          isLoading={isLoadingComparison}
-          onSearch1={handleSearch1}
-          onSearch2={handleSearch2}
+          isLoading={isSearching || isLoadingComparison}
+          onSymbol1Change={handleSymbol1Change}
+          onSymbol2Change={handleSymbol2Change}
           onCompare={handleCompare}
           onSwap={handleSwapSymbols}
           onReset={handleReset}
+          onCardSelect={handleCardSelect}
+          showCards={showCards}
+          companyOptions={companyOptions}
+          isFirstCompanySelected={isFirstCompanySelected}
         />
 
-        {!comparisonQuery ? (
+        {!showCards && !selectedSymbol1 && !selectedSymbol2 ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
-              Enter two stock symbols above and click "Compare" to see side-by-side comparison
+              Enter two company names above and click "Compare" to see side-by-side comparison
             </div>
           </div>
-        ) : isLoadingComparison ? (
+        ) : isSearching || isLoadingComparison ? (
           <div className="mt-8 text-center py-16">
             <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
             <div className="text-trendmate-gray text-lg">
               Loading comparison data...
             </div>
           </div>
-        ) : isComparisonError ? (
-          <div className="mt-8">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Error loading comparison data. Please try different companies.
-              </AlertDescription>
-            </Alert>
-          </div>
-        ) : apiData ? (
+        ) : comparisonData ? (
           <ComparisonReport 
-            data={apiData} 
-            symbol1={symbol1} 
-            symbol2={symbol2} 
+            data={comparisonData} 
+            symbol1={selectedSymbol1} 
+            symbol2={selectedSymbol2} 
           />
-        ) : (
-          <div className="mt-8">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No comparison data available. Please try different companies.
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
+        ) : null}
       </div>
     </PageLayout>
   );
