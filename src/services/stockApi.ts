@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 
 // API URL and Headers
@@ -37,6 +36,7 @@ interface ChartOptions {
       text: string;
     };
   };
+  scales?: any;
 }
 
 interface ChartContent {
@@ -56,7 +56,12 @@ interface ChartItem {
   content: ChartContent;
 }
 
-type ReportDataItem = SummaryItem | ChartItem;
+interface TableItem {
+  type: "table";
+  content: string;
+}
+
+type ReportDataItem = SummaryItem | ChartItem | TableItem;
 
 export interface StockApiResponse {
   content: {
@@ -67,7 +72,9 @@ export interface StockApiResponse {
 
 interface ComparisonApiResponse {
   content: {
-    companies: Array<{
+    label?: string;
+    reportData?: ReportDataItem[];
+    companies?: Array<{
       name: string;
       symbol: string;
       metrics: Record<string, string | number>;
@@ -75,11 +82,10 @@ interface ComparisonApiResponse {
       strengths: string[];
       chart: ChartContent;
     }>;
-    comparison: Array<{
+    comparison?: Array<{
       title: string;
       value1: string | number;
       value2: string | number;
-      winner?: 1 | 2 | 0;
     }>;
   };
 }
@@ -94,6 +100,16 @@ interface AlertsApiResponse {
       isImportant?: boolean;
     }>;
   };
+}
+
+interface CardSelectResponse {
+  options: Array<{
+    label: string;
+    value: string;
+    subTitle: string;
+  }>;
+  type: "cardSelect";
+  subTitleField: string;
 }
 
 const getApiHeaders = () => {
@@ -121,7 +137,6 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
       body: JSON.stringify(request)
     });
 
-
     return await response.json();
   } catch (error) {
     throw error;
@@ -138,12 +153,12 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
       }
     };
 
-
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: getApiHeaders(),
       body: JSON.stringify(request)
     });
+
 
     return await response.json();
   } catch (error) {
@@ -161,7 +176,80 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
       }
     };
 
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
 
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const useStockData = (companyName: string) => {
+  return useQuery({
+    queryKey: ['stockData', companyName],
+    queryFn: () => fetchStockData(companyName),
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useComparisonData = (companies: string) => {
+  return useQuery({
+    queryKey: ['comparisonData', companies],
+    queryFn: () => fetchComparisonData(companies),
+    refetchOnWindowFocus: false,
+
+  });
+};
+
+export const useAlertsData = () => {
+  return useQuery({
+    queryKey: ['alertsData'],
+    queryFn: fetchAlertsData,
+    refetchOnWindowFocus: false
+
+  });
+};
+
+
+
+export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "workflow-for-fetch-real-time-data-copy-1741346734879",
+      taskInputs: {
+        query
+      }
+    };
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(request)
+    });
+
+
+    return await response.json();
+  } catch (error) {
+
+    throw error;
+  }
+};
+
+export const selectCompany = async (companyName: string): Promise<any> => {
+  try {
+    const request: ApiRequest = {
+      appId: "uptiq-interns",
+      integrationId: "select-company-9826",
+      taskInputs: {
+        query: companyName
+      }
+    };
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -171,35 +259,26 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
 
     return await response.json();
   } catch (error) {
-
+    console.error("Error selecting company:", error);
     throw error;
   }
 };
 
-export const useStockData = (companyName: string) => {
+export const useCompanySearch = (query: string) => {
   return useQuery({
-    queryKey: ['stockData', companyName],
-    queryFn: () => fetchStockData(companyName),
-    enabled: !!companyName,
-
+    queryKey: ['companySearch', query],
+    queryFn: () => fetchCompanyOptions(query),
+    enabled: !!query && query.length >= 2,
+    refetchOnWindowFocus: false
   });
 };
 
-export const useComparisonData = (companies: string) => {
+export const useCompanySelect = (companyName: string) => {
   return useQuery({
-    queryKey: ['comparisonData', companies],
-    queryFn: () => fetchComparisonData(companies),
-    enabled: !!companies,
+    queryKey: ['companySelect', companyName],
+    queryFn: () => selectCompany(companyName),
+    enabled: false,
+    refetchOnWindowFocus: false
 
-  });
-};
-
-export const useAlertsData = () => {
-  return useQuery({
-    queryKey: ['alertsData'],
-    queryFn: fetchAlertsData,
-    staleTime: 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    retry: 1
   });
 };

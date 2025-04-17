@@ -120,7 +120,6 @@ const Analysis = () => {
                   <MarkdownContent
                     key={`summary-${index}`}
                     content={item.content}
-                    title={index === 1 ? "Analysis Insights" : undefined}
                   />
                 );
               }
