@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
 interface CompanyOption {
@@ -28,9 +27,8 @@ const CompanyCardSelect = ({ options, onSelect }: CompanyCardSelectProps) => {
       {options.map((option) => (
         <Card
           key={option.value}
-          className={`cursor-pointer transition-all hover:border-primary ${
-            selectedOption === option.value ? "border-primary bg-primary/5" : ""
-          }`}
+          className={`cursor-pointer transition-all hover:border-primary ${selectedOption === option.value ? "border-primary bg-primary/5" : ""
+            }`}
           onClick={() => handleSelect(option)}
         >
           <CardContent className="p-4">

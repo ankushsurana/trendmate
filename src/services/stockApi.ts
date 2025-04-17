@@ -86,7 +86,6 @@ interface ComparisonApiResponse {
       title: string;
       value1: string | number;
       value2: string | number;
-      winner?: 1 | 2 | 0;
     }>;
   };
 }
@@ -103,10 +102,21 @@ interface AlertsApiResponse {
   };
 }
 
+interface CardSelectResponse {
+  options: Array<{
+    label: string;
+    value: string;
+    subTitle: string;
+  }>;
+  type: "cardSelect";
+  subTitleField: string;
+}
+
 const getApiHeaders = () => {
   return {
     'widgetKey': 'a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9',
     'appid': 'uptiq-interns',
+    'agentId': 'trendmate-4009',
     'Content-Type': 'application/json'
   };
 };
@@ -127,13 +137,8 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
       body: JSON.stringify(request)
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${await response.text()}`);
-    }
-
     return await response.json();
   } catch (error) {
-    console.error("Error fetching stock data:", error);
     throw error;
   }
 };
@@ -154,13 +159,9 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
       body: JSON.stringify(request)
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${await response.text()}`);
-    }
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching comparison data:", error);
     throw error;
   }
 };
@@ -181,13 +182,9 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
       body: JSON.stringify(request)
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${await response.text()}`);
-    }
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching alerts data:", error);
     throw error;
   }
 };
@@ -196,8 +193,7 @@ export const useStockData = (companyName: string) => {
   return useQuery({
     queryKey: ['stockData', companyName],
     queryFn: () => fetchStockData(companyName),
-    enabled: !!companyName,
-    retry: 1
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -205,8 +201,8 @@ export const useComparisonData = (companies: string) => {
   return useQuery({
     queryKey: ['comparisonData', companies],
     queryFn: () => fetchComparisonData(companies),
-    enabled: !!companies,
-    retry: 1
+    refetchOnWindowFocus: false,
+
   });
 };
 
@@ -214,21 +210,12 @@ export const useAlertsData = () => {
   return useQuery({
     queryKey: ['alertsData'],
     queryFn: fetchAlertsData,
-    staleTime: 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    retry: 1
+    refetchOnWindowFocus: false
+
   });
 };
 
-interface CardSelectResponse {
-  options: Array<{
-    label: string;
-    value: string;
-    subTitle: string;
-  }>;
-  type: "cardSelect";
-  subTitleField: string;
-}
+
 
 export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
   try {
@@ -246,13 +233,10 @@ export const fetchCompanyOptions = async (query: string): Promise<CardSelectResp
       body: JSON.stringify(request)
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${await response.text()}`);
-    }
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching company options:", error);
+
     throw error;
   }
 };
@@ -273,10 +257,6 @@ export const selectCompany = async (companyName: string): Promise<any> => {
       body: JSON.stringify(request)
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${await response.text()}`);
-    }
-
     return await response.json();
   } catch (error) {
     console.error("Error selecting company:", error);
@@ -289,7 +269,7 @@ export const useCompanySearch = (query: string) => {
     queryKey: ['companySearch', query],
     queryFn: () => fetchCompanyOptions(query),
     enabled: !!query && query.length >= 2,
-    retry: 1
+    refetchOnWindowFocus: false
   });
 };
 
@@ -298,6 +278,7 @@ export const useCompanySelect = (companyName: string) => {
     queryKey: ['companySelect', companyName],
     queryFn: () => selectCompany(companyName),
     enabled: false,
-    retry: 1
+    refetchOnWindowFocus: false
+
   });
 };

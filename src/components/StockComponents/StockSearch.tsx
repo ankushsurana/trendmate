@@ -25,9 +25,9 @@ const StockSearch = ({
   const [symbol, setSymbol] = useState(value);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCards, setShowCards] = useState(false);
-  
-  const { data: companyOptions, isLoading: isSearching } = useCompanySearch(searchQuery);
-  
+
+  const { data: companyOptions } = useCompanySearch(searchQuery);
+
   useEffect(() => {
     setSymbol(value);
   }, [value]);
@@ -84,10 +84,10 @@ const StockSearch = ({
           </form>
         </CardContent>
       </Card>
-      
+
       {showCards && companyOptions && (
-        <CompanyCardSelect 
-          options={companyOptions.options} 
+        <CompanyCardSelect
+          options={companyOptions.options}
           onSelect={handleCardSelect}
         />
       )}
