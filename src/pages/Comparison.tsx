@@ -5,24 +5,53 @@ import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
 import ComparisonReport from "@/components/StockComponents/ComparisonReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { useComparisonData } from "@/services/stockApi";
+import { useComparisonData, useCompanySelect } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
   const [symbol2, setSymbol2] = useState("");
   const [comparisonQuery, setComparisonQuery] = useState("");
-  const { data: apiData, isLoading, error } = useComparisonData(comparisonQuery);
+  
+  const { data: apiData, isLoading: isLoadingComparison } = useComparisonData(comparisonQuery);
+  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect("");
+  
   const { toast } = useToast();
+  
+  const isLoading = isLoadingComparison || isSelectingCompany;
 
-  const handleSearch1 = (symbol: string) => {
-    setSymbol1(symbol);
-    checkAndShowResults(symbol, symbol2);
+  const handleSearch1 = async (symbol: string) => {
+    try {
+      // First select the company
+      await selectCompany();
+      
+      // Then set the symbol
+      setSymbol1(symbol);
+      checkAndShowResults(symbol, symbol2);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Error selecting company. Please try again.",
+        duration: 3000,
+      });
+    }
   };
 
-  const handleSearch2 = (symbol: string) => {
-    setSymbol2(symbol);
-    checkAndShowResults(symbol1, symbol);
+  const handleSearch2 = async (symbol: string) => {
+    try {
+      // First select the company
+      await selectCompany();
+      
+      // Then set the symbol
+      setSymbol2(symbol);
+      checkAndShowResults(symbol1, symbol);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Error selecting company. Please try again.",
+        duration: 3000,
+      });
+    }
   };
 
   const checkAndShowResults = (s1: string, s2: string) => {
@@ -80,7 +109,13 @@ const Comparison = () => {
               Loading comparison data...
             </div>
           </div>
-        ) : error ? (
+        ) : apiData ? (
+          <ComparisonReport 
+            data={apiData} 
+            symbol1={symbol1} 
+            symbol2={symbol2} 
+          />
+        ) : (
           <div className="mt-8">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -89,12 +124,6 @@ const Comparison = () => {
               </AlertDescription>
             </Alert>
           </div>
-        ) : (
-          <ComparisonReport 
-            data={apiData} 
-            symbol1={symbol1} 
-            symbol2={symbol2} 
-          />
         )}
       </div>
     </PageLayout>
