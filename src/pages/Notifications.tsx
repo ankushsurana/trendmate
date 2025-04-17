@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
-import { useAlertsData, useCreateAlert } from "@/services/stockApi";
+import { useAlertsData, useCreateAlert, useDeleteAlert, AlertFormData } from "@/services/stockApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -55,6 +55,7 @@ const Notifications = () => {
   ]);
   const { toast } = useToast();
   const createAlert = useCreateAlert();
+  const deleteAlert = useDeleteAlert();
 
   const form = useForm<AlertFormValues>({
     resolver: zodResolver(alertFormSchema),
@@ -78,8 +79,15 @@ const Notifications = () => {
 
   const onSubmit = async (data: AlertFormValues) => {
     try {
+      // Ensure all required fields are present before making the API call
+      const alertData: AlertFormData = {
+        symbol: data.symbol,
+        alertType: data.alertType,
+        condition: data.condition
+      };
+      
       // Call the API to create a new alert
-      await createAlert.mutateAsync(data);
+      await createAlert.mutateAsync(alertData);
       
       // Add new subscription to the local state
       const newSubscription = {

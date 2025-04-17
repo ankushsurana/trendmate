@@ -4,18 +4,20 @@ import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStockData, useCompanySelect } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
   
-  const { data: apiData, isLoading: isLoadingStockData } = useStockData(searchedSymbol);
-  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect(searchedSymbol);
+  // Only call when we have a symbol to select
+  const { data: apiData, isLoading: isLoadingStockData, isError: isStockDataError } = useStockData(searchedSymbol);
+  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect("");
   
   const { toast } = useToast();
   const isLoading = isLoadingStockData || isSelectingCompany;
@@ -61,7 +63,6 @@ const Analysis = () => {
     
     try {
       setSearchedSymbol(symbol);
-      await selectCompany();
       
       toast({
         description: `Analyzing ${symbol}...`,
@@ -101,15 +102,31 @@ const Analysis = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Stock Analysis</h1>
 
-        <StockSearch onSearch={handleSearch} isLoading={isLoading} />
+        <StockSearch onSearch={handleSearch} isLoading={isLoading} value={searchedSymbol} />
 
-        {!apiData ? (
+        {!searchedSymbol ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
               Enter a company name above to see detailed analysis
             </div>
           </div>
-        ) : (
+        ) : isLoading ? (
+          <div className="mt-8 text-center py-16">
+            <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
+            <div className="text-trendmate-gray text-lg">
+              Loading analysis for {searchedSymbol}...
+            </div>
+          </div>
+        ) : isStockDataError ? (
+          <div className="mt-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading stock data. Please try again with a different company.
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : apiData ? (
           <div className="mt-8 space-y-8">
             <Alert variant="default" className="bg-amber-50 border border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-700" />
@@ -153,6 +170,12 @@ const Analysis = () => {
                 <StockMetrics symbol={searchedSymbol} data={stockData} />
               </div>
             )}
+          </div>
+        ) : (
+          <div className="mt-8 text-center py-16">
+            <div className="text-trendmate-gray text-lg">
+              No data available for {searchedSymbol}
+            </div>
           </div>
         )}
       </div>

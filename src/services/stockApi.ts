@@ -124,6 +124,11 @@ export interface AlertFormData {
   condition: string;
 }
 
+// Integration IDs
+const COMPANY_SEARCH_INTEGRATION_ID = "workflow-for-fetch-real-time-data-copy-1741346734879";
+const COMPANY_SELECT_INTEGRATION_ID = "select-company-9826";
+const ALERT_CREATE_INTEGRATION_ID = "alert-table-2938";
+
 // Common API headers
 export const getApiHeaders = () => {
   return {
@@ -164,12 +169,12 @@ export async function makeApiRequest(integrationId: string, query: string) {
 
 // API function to fetch company options
 export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
-  return makeApiRequest("workflow-for-fetch-real-time-data-copy-1741346734879", query);
+  return makeApiRequest(COMPANY_SEARCH_INTEGRATION_ID, query);
 };
 
 // API function to select a company
 export const selectCompany = async (companyName: string): Promise<any> => {
-  return makeApiRequest("select-company-9826", companyName);
+  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companyName);
 };
 
 // Custom hook for company search
@@ -197,7 +202,7 @@ export const useCompanySelect = (companyName: string) => {
 
 // API function to fetch stock data
 export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
-  return makeApiRequest("select-company-9826", companyName);
+  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companyName);
 };
 
 // Custom hook for stock data
@@ -214,7 +219,7 @@ export const useStockData = (companyName: string) => {
 
 // API function to fetch comparison data
 export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
-  return makeApiRequest("select-company-9826", companies);
+  return makeApiRequest(COMPANY_SELECT_INTEGRATION_ID, companies);
 };
 
 // Custom hook for comparison data
@@ -228,6 +233,12 @@ export const useComparisonData = (companies: string) => {
 };
 
 // ===== ALERTS API =====
+
+// API function to create a new alert
+export const createAlert = async (alertData: AlertFormData): Promise<any> => {
+  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
+  return makeApiRequest(ALERT_CREATE_INTEGRATION_ID, query);
+};
 
 // Mock data for alerts since the real API is not working
 const mockAlertData = {
@@ -264,26 +275,10 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
   return Promise.resolve(mockAlertData as AlertsApiResponse);
 };
 
-// API function to create a new alert
-export const createAlert = async (alertData: AlertFormData): Promise<any> => {
-  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
-  // Using mock data instead of API call to prevent errors
-  console.log("Creating alert with query:", query);
-  return Promise.resolve({ success: true });
-};
-
 // API function to delete an alert
 export const deleteAlert = async (alertId: string): Promise<any> => {
   // Using mock data instead of API call to prevent errors
   console.log("Deleting alert with ID:", alertId);
-  return Promise.resolve({ success: true });
-};
-
-// API function to toggle alert status
-export const toggleAlertStatus = async (alertId: string, enable: boolean): Promise<any> => {
-  const action = enable ? "enable" : "disable";
-  // Using mock data instead of API call to prevent errors
-  console.log(`${action} alert with ID:`, alertId);
   return Promise.resolve({ success: true });
 };
 
@@ -317,19 +312,6 @@ export const useDeleteAlert = () => {
   
   return useMutation({
     mutationFn: deleteAlert,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-    }
-  });
-};
-
-// Custom hook for toggling alert status
-export const useToggleAlertStatus = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ alertId, enable }: { alertId: string, enable: boolean }) => 
-      toggleAlertStatus(alertId, enable),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
     }

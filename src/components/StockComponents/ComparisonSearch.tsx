@@ -11,6 +11,7 @@ interface ComparisonSearchProps {
   isLoading: boolean;
   onSearch1: (symbol: string) => void;
   onSearch2: (symbol: string) => void;
+  onCompare: () => void;
   onSwap: () => void;
   onReset: () => void;
 }
@@ -21,6 +22,7 @@ const ComparisonSearch = ({
   isLoading,
   onSearch1,
   onSearch2,
+  onCompare,
   onSwap,
   onReset,
 }: ComparisonSearchProps) => {
@@ -58,6 +60,17 @@ const ComparisonSearch = ({
             />
           </div>
         </div>
+
+        <div className="mt-6 flex justify-center">
+          <Button 
+            onClick={onCompare} 
+            className="bg-trendmate-purple hover:bg-trendmate-purple-light px-8" 
+            disabled={!symbol1 || !symbol2 || isLoading}
+          >
+            Compare Companies
+          </Button>
+        </div>
+
         {(symbol1 || symbol2) && (
           <div className="mt-4 flex justify-end">
             <Button variant="outline" size="sm" onClick={onReset} disabled={isLoading}>

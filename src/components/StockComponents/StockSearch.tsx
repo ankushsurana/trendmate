@@ -29,7 +29,7 @@ const StockSearch = ({
   const { toast } = useToast();
 
   // Company search query - only runs when user submits search
-  const { data: companyOptions, isLoading: isSearching } = useCompanySearch(searchQuery);
+  const { data: companyOptions, isLoading: isSearching, isError: searchError } = useCompanySearch(searchQuery);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,12 +99,18 @@ const StockSearch = ({
         </CardContent>
       </Card>
 
-      {showCards && companyOptions && (
+      {showCards && companyOptions && companyOptions.options && companyOptions.options.length > 0 ? (
         <CompanyCardSelect
           options={companyOptions.options}
           onSelect={handleCardSelect}
         />
-      )}
+      ) : showCards && searchError ? (
+        <Card className="mt-4 bg-red-50 border-red-200">
+          <CardContent className="pt-6">
+            <p className="text-red-600">Failed to load company options. Please try again.</p>
+          </CardContent>
+        </Card>
+      ) : null}
     </>
   );
 };
