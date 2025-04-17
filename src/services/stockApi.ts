@@ -1,7 +1,11 @@
+
 import { useQuery } from "@tanstack/react-query";
 
-// API URL and Headers
+// API configuration - ideally these would be in environment variables
 const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-sync";
+const APP_ID = "uptiq-interns";
+const WIDGET_KEY = "a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9";
+const AGENT_ID = "trendmate-4009";
 
 interface TaskInputs {
   query: string;
@@ -114,9 +118,9 @@ interface CardSelectResponse {
 
 const getApiHeaders = () => {
   return {
-    'widgetKey': 'a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9',
-    'appid': 'uptiq-interns',
-    'agentId': 'trendmate-4009',
+    'widgetKey': WIDGET_KEY,
+    'appid': APP_ID,
+    'agentId': AGENT_ID,
     'Content-Type': 'application/json'
   };
 };
@@ -124,7 +128,7 @@ const getApiHeaders = () => {
 export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
   try {
     const request: ApiRequest = {
-      appId: "uptiq-interns",
+      appId: APP_ID,
       integrationId: "fetch-real-time-data-0202",
       taskInputs: {
         query: `${companyName}`
@@ -146,7 +150,7 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
 export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
   try {
     const request: ApiRequest = {
-      appId: "uptiq-interns",
+      appId: APP_ID,
       integrationId: "company-report-summarizer-0555",
       taskInputs: {
         query: companies
@@ -159,7 +163,6 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
       body: JSON.stringify(request)
     });
 
-
     return await response.json();
   } catch (error) {
     throw error;
@@ -168,9 +171,10 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
 
 export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
   try {
+    // Updated integration ID as requested
     const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "stock-alerts-generator-0333",
+      appId: APP_ID,
+      integrationId: "alert-table-2938",
       taskInputs: {
         query: "latest stock alerts"
       }
@@ -182,9 +186,9 @@ export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
       body: JSON.stringify(request)
     });
 
-
     return await response.json();
   } catch (error) {
+    console.error("Error fetching alerts data:", error);
     throw error;
   }
 };
@@ -194,6 +198,7 @@ export const useStockData = (companyName: string) => {
     queryKey: ['stockData', companyName],
     queryFn: () => fetchStockData(companyName),
     refetchOnWindowFocus: false,
+    enabled: !!companyName,  // Only fetch when companyName is provided
   });
 };
 
@@ -202,7 +207,7 @@ export const useComparisonData = (companies: string) => {
     queryKey: ['comparisonData', companies],
     queryFn: () => fetchComparisonData(companies),
     refetchOnWindowFocus: false,
-
+    enabled: !!companies,  // Only fetch when companies is provided
   });
 };
 
@@ -210,17 +215,16 @@ export const useAlertsData = () => {
   return useQuery({
     queryKey: ['alertsData'],
     queryFn: fetchAlertsData,
-    refetchOnWindowFocus: false
-
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,  // 5 minutes
+    retry: 1,  // Limit retries to avoid excessive API calls
   });
 };
-
-
 
 export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
   try {
     const request: ApiRequest = {
-      appId: "uptiq-interns",
+      appId: APP_ID,
       integrationId: "workflow-for-fetch-real-time-data-copy-1741346734879",
       taskInputs: {
         query
@@ -233,10 +237,9 @@ export const fetchCompanyOptions = async (query: string): Promise<CardSelectResp
       body: JSON.stringify(request)
     });
 
-
     return await response.json();
   } catch (error) {
-
+    console.error("Error fetching company options:", error);
     throw error;
   }
 };
@@ -244,7 +247,7 @@ export const fetchCompanyOptions = async (query: string): Promise<CardSelectResp
 export const selectCompany = async (companyName: string): Promise<any> => {
   try {
     const request: ApiRequest = {
-      appId: "uptiq-interns",
+      appId: APP_ID,
       integrationId: "select-company-9826",
       taskInputs: {
         query: companyName
@@ -269,7 +272,8 @@ export const useCompanySearch = (query: string) => {
     queryKey: ['companySearch', query],
     queryFn: () => fetchCompanyOptions(query),
     enabled: !!query && query.length >= 2,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,  // 1 minute
   });
 };
 
@@ -277,8 +281,7 @@ export const useCompanySelect = (companyName: string) => {
   return useQuery({
     queryKey: ['companySelect', companyName],
     queryFn: () => selectCompany(companyName),
-    enabled: false,
+    enabled: false,  // Never automatically run this query
     refetchOnWindowFocus: false
-
   });
 };
