@@ -50,6 +50,20 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Environment Setup
+
+1. Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Update the environment variables in `.env.local` with your values:
+- `VITE_API_URL`: Your API endpoint URL
+- `VITE_APP_ID`: Your application ID
+- `VITE_WIDGET_KEY`: Your widget authentication key
+- `VITE_INTEGRATION_ID_STOCK`: Integration ID for stock data
+- `VITE_INTEGRATION_ID_COMPARISON`: Integration ID for comparison data
+
 ## What technologies are used for this project?
 
 This project is built with:
