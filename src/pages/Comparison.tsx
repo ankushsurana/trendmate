@@ -23,10 +23,14 @@ const Comparison = () => {
   const handleSearch1 = async (symbol: string) => {
     try {
       // First select the company
+      setSymbol1(symbol);
       await selectCompany();
       
-      // Then set the symbol
-      setSymbol1(symbol);
+      toast({
+        description: `Selected company: ${symbol}`,
+        duration: 1500,
+      });
+      
       checkAndShowResults(symbol, symbol2);
     } catch (error) {
       toast({
@@ -40,10 +44,14 @@ const Comparison = () => {
   const handleSearch2 = async (symbol: string) => {
     try {
       // First select the company
+      setSymbol2(symbol);
       await selectCompany();
       
-      // Then set the symbol
-      setSymbol2(symbol);
+      toast({
+        description: `Selected company: ${symbol}`,
+        duration: 1500,
+      });
+      
       checkAndShowResults(symbol1, symbol);
     } catch (error) {
       toast({

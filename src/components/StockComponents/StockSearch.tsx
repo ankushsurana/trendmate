@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCompanySearch, useCompanySelect } from "@/services/stockApi";
+import { useCompanySearch } from "@/services/stockApi";
 import CompanyCardSelect from "./CompanyCardSelect";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,9 +30,6 @@ const StockSearch = ({
 
   // Company search query - only runs when user submits search
   const { data: companyOptions, isLoading: isSearching } = useCompanySearch(searchQuery);
-  
-  // Company select query - manually triggered when a card is selected
-  const { refetch: selectCompany, isLoading: isSelecting } = useCompanySelect("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,30 +44,21 @@ const StockSearch = ({
     }
   };
 
-  const handleCardSelect = async (option: { label: string; value: string }) => {
+  const handleCardSelect = (option: { label: string; value: string }) => {
     setShowCards(false);
     setSearchInput(option.value);
     
-    // First call select-company API
-    try {
-      toast({
-        description: `Selected ${option.label}`,
-        duration: 1500,
-      });
-      
-      // Then pass to parent for further processing
-      onSearch(option.value);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        description: "Error selecting company. Please try again.",
-        duration: 3000,
-      });
-    }
+    toast({
+      description: `Selected ${option.label}`,
+      duration: 1500,
+    });
+    
+    // Pass selected company to parent component for further processing
+    onSearch(option.value);
   };
 
   // Combined loading state
-  const combinedIsLoading = isLoading || isSearching || isSelecting;
+  const combinedIsLoading = isLoading || isSearching;
 
   return (
     <>

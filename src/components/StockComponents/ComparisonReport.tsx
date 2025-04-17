@@ -1,15 +1,72 @@
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import MarkdownContent from "./MarkdownContent";
 import DynamicChart from "./DynamicChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ComparisonCard from "./ComparisonCard";
+import { ReactNode } from "react";
 
 interface ReportProps {
   data: any;
   symbol1: string;
   symbol2: string;
 }
+
+interface ComparisonMetric {
+  title: string;
+  value1: string | number;
+  value2: string | number;
+  winner?: 1 | 2 | 0;
+}
+
+// Define proper props for ComparisonCard component
+interface ComparisonCardProps {
+  symbol1: string;
+  symbol2: string;
+  metrics: ComparisonMetric[];
+}
+
+const ComparisonCard = ({ symbol1, symbol2, metrics }: ComparisonCardProps) => {
+  return (
+    <Card className="dashboard-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">
+          <div className="grid grid-cols-2 gap-2">
+            <div>{symbol1}</div>
+            <div>{symbol2}</div>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="border-t pt-4">
+        <div className="space-y-2">
+          {metrics.map((metric, index) => (
+            <div key={index} className="py-2">
+              <div className="text-sm text-gray-500">{metric.title}</div>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <div className="flex items-center">
+                  <span className="text-base font-medium">{metric.value1}</span>
+                  {metric.winner === 1 && (
+                    <svg className="ml-1 w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex items-center">
+                  <span className="text-base font-medium">{metric.value2}</span>
+                  {metric.winner === 2 && (
+                    <svg className="ml-1 w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
   const renderReportData = () => {
@@ -19,6 +76,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
     
     return data.content.reportData.map((item: any, index: number) => {
       if (item.type === "summary") {
+        // Clean content before rendering
         const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
         
         return (
@@ -84,10 +142,10 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
           <CardContent>
             <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
             <ul className="space-y-2">
-              {Object.entries(company1.metrics).map(([key, value]) => (
+              {Object.entries(company1.metrics || {}).map(([key, value]) => (
                 <li key={key} className="flex justify-between">
                   <span className="font-medium">{key}</span>
-                  <span>{value}</span>
+                  <span>{value as ReactNode}</span>
                 </li>
               ))}
             </ul>
@@ -99,7 +157,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
               <>
                 <h3 className="text-lg font-semibold mt-6 mb-2">Strengths</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  {company1.strengths.map((strength, i) => (
+                  {company1.strengths.map((strength: string, i: number) => (
                     <li key={i} className="text-sm text-gray-700">{strength}</li>
                   ))}
                 </ul>
@@ -115,10 +173,10 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
           <CardContent>
             <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
             <ul className="space-y-2">
-              {Object.entries(company2.metrics).map(([key, value]) => (
+              {Object.entries(company2.metrics || {}).map(([key, value]) => (
                 <li key={key} className="flex justify-between">
                   <span className="font-medium">{key}</span>
-                  <span>{value}</span>
+                  <span>{value as ReactNode}</span>
                 </li>
               ))}
             </ul>
@@ -130,7 +188,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
               <>
                 <h3 className="text-lg font-semibold mt-6 mb-2">Strengths</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  {company2.strengths.map((strength, i) => (
+                  {company2.strengths.map((strength: string, i: number) => (
                     <li key={i} className="text-sm text-gray-700">{strength}</li>
                   ))}
                 </ul>
@@ -147,23 +205,25 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
       return null;
     }
     
+    const comparisonMetrics = data.content.comparison.map((item: any) => ({
+      title: item.title,
+      value1: item.value1,
+      value2: item.value2,
+      // You can add logic here to determine winner
+    }));
+    
     return (
       <Card className="mb-6 dashboard-card">
         <CardHeader>
           <CardTitle>Head-to-Head Comparison</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {data.content.comparison.map((item: any, index: number) => (
-              <ComparisonCard
-                key={index}
-                title={item.title}
-                value1={item.value1}
-                value2={item.value2}
-                symbol1={symbol1}
-                symbol2={symbol2}
-              />
-            ))}
+          <div>
+            <ComparisonCard 
+              symbol1={symbol1}
+              symbol2={symbol2}
+              metrics={comparisonMetrics}
+            />
           </div>
         </CardContent>
       </Card>
