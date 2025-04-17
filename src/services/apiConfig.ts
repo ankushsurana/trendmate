@@ -24,7 +24,6 @@ export const getApiHeaders = () => {
   };
 };
 
-// Common API request function to reduce code duplication
 export async function makeApiRequest(integrationId: string, query: string) {
   try {
     const request: ApiRequest = {

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
-import { useAlertsData } from "@/services/stockApi";
+import { useAlertsData, useCreateAlert } from "@/services/stockApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,7 +37,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const alertFormSchema = z.object({
-  stockName: z.string().min(1, "Stock name is required"),
+  symbol: z.string().min(1, "Stock symbol is required"),
   alertType: z.enum(["MovingAverage", "BollingerBands"]),
   condition: z.string().min(1, "Condition is required"),
 });
@@ -44,7 +45,7 @@ const alertFormSchema = z.object({
 type AlertFormValues = z.infer<typeof alertFormSchema>;
 
 const Notifications = () => {
-  const { data: apiData, isLoading, error, refetch } = useAlertsData();
+  const { data: apiData, isLoading, error } = useAlertsData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const [subscriptions, setSubscriptions] = useState([
@@ -53,11 +54,12 @@ const Notifications = () => {
     { id: 3, symbol: "TSLA", type: "MA Crossover", threshold: "20-day & 50-day" },
   ]);
   const { toast } = useToast();
+  const createAlert = useCreateAlert();
 
   const form = useForm<AlertFormValues>({
     resolver: zodResolver(alertFormSchema),
     defaultValues: {
-      stockName: "",
+      symbol: "",
       alertType: "MovingAverage",
       condition: "",
     },
@@ -74,27 +76,37 @@ const Notifications = () => {
     });
   };
 
-  const onSubmit = (data: AlertFormValues) => {
-    console.log("Form submitted:", data);
-    
-    // Add new subscription
-    const newSubscription = {
-      id: Date.now(),
-      symbol: data.stockName,
-      type: data.alertType,
-      threshold: data.condition,
-    };
-    
-    setSubscriptions([...subscriptions, newSubscription]);
-    
-    toast({
-      title: "Alert created",
-      description: `New ${data.alertType} alert for ${data.stockName} has been created.`,
-      duration: 3000,
-    });
-    
-    setIsDialogOpen(false);
-    form.reset();
+  const onSubmit = async (data: AlertFormValues) => {
+    try {
+      // Call the API to create a new alert
+      await createAlert.mutateAsync(data);
+      
+      // Add new subscription to the local state
+      const newSubscription = {
+        id: Date.now(),
+        symbol: data.symbol,
+        type: data.alertType,
+        threshold: data.condition,
+      };
+      
+      setSubscriptions([...subscriptions, newSubscription]);
+      
+      toast({
+        title: "Alert created",
+        description: `New ${data.alertType} alert for ${data.symbol} has been created.`,
+        duration: 3000,
+      });
+      
+      setIsDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create alert. Please try again.",
+        duration: 3000,
+      });
+    }
   };
 
   return (
@@ -113,12 +125,15 @@ const Notifications = () => {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Create New Alert</DialogTitle>
+                <DialogDescription>
+                  Set up custom alerts for stock movements
+                </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="stockName"
+                    name="symbol"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Stock Symbol</FormLabel>
@@ -190,7 +205,19 @@ const Notifications = () => {
                   />
                   
                   <div className="flex justify-end pt-4">
-                    <Button type="submit">Create Alert</Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createAlert.isPending}
+                    >
+                      {createAlert.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Alert"
+                      )}
+                    </Button>
                   </div>
                 </form>
               </Form>

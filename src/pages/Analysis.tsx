@@ -30,26 +30,30 @@ const Analysis = () => {
 
     if (!ohlcvSummary || ohlcvSummary.type !== "summary") return null;
 
-    const content = ohlcvSummary.content;
+    // Remove HTML tags for reliable regex matching
+    const content = ohlcvSummary.content.replace(/<\/?[^>]+(>|$)/g, "");
 
-    const openMatch = content.match(/Open Price:\s*\$([0-9.]+)/);
-    const highMatch = content.match(/High Price:\s*\$([0-9.]+)/);
-    const lowMatch = content.match(/Low Price:\s*\$([0-9.]+)/);
-    const closeMatch = content.match(/Close Price:\s*\$([0-9.]+)/);
-    const volumeMatch = content.match(/Volume:\s*([0-9,]+)/);
+    const openMatch = content.match(/Open Price:\s*\$?([0-9.,]+)/);
+    const highMatch = content.match(/High Price:\s*\$?([0-9.,]+)/);
+    const lowMatch = content.match(/Low Price:\s*\$?([0-9.,]+)/);
+    const closeMatch = content.match(/Close Price:\s*\$?([0-9.,]+)/);
+    const volumeMatch = content.match(/Volume:\s*([0-9.,]+)/);
 
     if (!openMatch || !highMatch || !lowMatch || !closeMatch) return null;
 
+    // Parse values, handling comma in numbers
+    const parseValue = (value: string) => parseFloat(value.replace(/,/g, ''));
+
     return {
       symbol: searchedSymbol.toUpperCase(),
-      price: parseFloat(closeMatch[1]),
+      price: parseValue(closeMatch[1]),
       change: 0,
       changePercent: 0,
-      open: parseFloat(openMatch[1]),
-      high: parseFloat(highMatch[1]),
-      low: parseFloat(lowMatch[1]),
-      close: parseFloat(closeMatch[1]),
-      volume: volumeMatch ? parseInt(volumeMatch[1].replace(/,/g, "")) : 0,
+      open: parseValue(openMatch[1]),
+      high: parseValue(highMatch[1]),
+      low: parseValue(lowMatch[1]),
+      close: parseValue(closeMatch[1]),
+      volume: volumeMatch ? parseValue(volumeMatch[1]) : 0,
     };
   };
 
@@ -82,7 +86,7 @@ const Analysis = () => {
 
     if (!firstSummary || firstSummary.type !== "summary") return [];
 
-    // Clean the content
+    // Clean the content from HTML tags
     const cleanContent = firstSummary.content.replace(/<\/?[^>]+(>|$)/g, "");
 
     return [
