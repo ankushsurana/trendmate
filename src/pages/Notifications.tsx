@@ -8,15 +8,62 @@ import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+const alertFormSchema = z.object({
+  stockName: z.string().min(1, "Stock name is required"),
+  alertType: z.enum(["MovingAverage", "BollingerBands"]),
+  condition: z.string().min(1, "Condition is required"),
+});
+
+type AlertFormValues = z.infer<typeof alertFormSchema>;
 
 const Notifications = () => {
-  const { data: apiData, isLoading, error } = useAlertsData();
+  const { data: apiData, isLoading, error, refetch } = useAlertsData();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   const [subscriptions, setSubscriptions] = useState([
     { id: 1, symbol: "AAPL", type: "Price Alert", threshold: "$190" },
     { id: 2, symbol: "MSFT", type: "Volume Alert", threshold: "25M shares" },
     { id: 3, symbol: "TSLA", type: "MA Crossover", threshold: "20-day & 50-day" },
   ]);
   const { toast } = useToast();
+
+  const form = useForm<AlertFormValues>({
+    resolver: zodResolver(alertFormSchema),
+    defaultValues: {
+      stockName: "",
+      alertType: "MovingAverage",
+      condition: "",
+    },
+  });
+
+  const selectedAlertType = form.watch("alertType");
 
   const handleDeleteSubscription = (id: number) => {
     setSubscriptions(subscriptions.filter(sub => sub.id !== id));
@@ -27,15 +74,128 @@ const Notifications = () => {
     });
   };
 
+  const onSubmit = (data: AlertFormValues) => {
+    console.log("Form submitted:", data);
+    
+    // Add new subscription
+    const newSubscription = {
+      id: Date.now(),
+      symbol: data.stockName,
+      type: data.alertType,
+      threshold: data.condition,
+    };
+    
+    setSubscriptions([...subscriptions, newSubscription]);
+    
+    toast({
+      title: "Alert created",
+      description: `New ${data.alertType} alert for ${data.stockName} has been created.`,
+      duration: 3000,
+    });
+    
+    setIsDialogOpen(false);
+    form.reset();
+  };
+
   return (
     <PageLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-trendmate-dark">Notifications</h1>
-          <Button className="bg-trendmate-purple hover:bg-trendmate-purple-light">
-            <Bell className="h-4 w-4 mr-2" />
-            Create New Alert
-          </Button>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-trendmate-purple hover:bg-trendmate-purple-light">
+                <Bell className="h-4 w-4 mr-2" />
+                Create New Alert
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create New Alert</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="stockName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stock Symbol</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., AAPL" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="alertType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Alert Type</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select alert type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="MovingAverage">Moving Average</SelectItem>
+                            <SelectItem value="BollingerBands">Bollinger Bands</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="condition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Condition</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select condition" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {selectedAlertType === "MovingAverage" ? (
+                              <>
+                                <SelectItem value="bullish">Bullish</SelectItem>
+                                <SelectItem value="bearish">Bearish</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="overBought">Over Bought</SelectItem>
+                                <SelectItem value="overSold">Over Sold</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex justify-end pt-4">
+                    <Button type="submit">Create Alert</Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
