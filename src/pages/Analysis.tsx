@@ -6,15 +6,20 @@ import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useCompanySelect } from "@/services/stockApi";
+import { useStockData, useCompanySelect } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { useToast } from "@/hooks/use-toast";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
-  const { data: apiData, isLoading, error } = useCompanySelect(searchedSymbol);
+  const [isCompanySelected, setIsCompanySelected] = useState(false);
+
+  const { data: apiData, isLoading: isLoadingStockData } = useStockData(searchedSymbol);
+  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect(searchedSymbol);
+
   const { toast } = useToast();
+  const isLoading = isLoadingStockData || isSelectingCompany;
 
   const extractOHLCVData = () => {
     if (!apiData) return null;
@@ -50,12 +55,24 @@ const Analysis = () => {
 
   const handleSearch = async (symbol: string) => {
     if (!symbol.trim()) return;
-    setSearchedSymbol(symbol);
 
-    toast({
-      description: `Fetching data for ${symbol}...`,
-      duration: 1500,
-    });
+    // First call select-company API
+    try {
+      setSearchedSymbol(symbol);
+      await selectCompany();
+      setIsCompanySelected(true);
+
+      toast({
+        description: `Analyzing ${symbol}...`,
+        duration: 1500,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Error selecting company. Please try again.",
+        duration: 3000,
+      });
+    }
   };
 
   const extractCompanySummary = () => {
@@ -65,16 +82,18 @@ const Analysis = () => {
 
     if (!firstSummary || firstSummary.type !== "summary") return [];
 
+    // Clean the content
+    const cleanContent = firstSummary.content.replace(/<\/?[^>]+(>|$)/g, "");
+
     return [
       {
         title: "Company Overview",
-        content: firstSummary.content,
+        content: cleanContent,
       }
     ];
   };
 
   const stockData = extractOHLCVData();
-
 
   return (
     <PageLayout>
@@ -116,10 +135,12 @@ const Analysis = () => {
                   />
                 );
               } else if (item.type === "summary" && index > 0) {
+                // Clean HTML tags from content
+                const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
                 return (
                   <MarkdownContent
                     key={`summary-${index}`}
-                    content={item.content}
+                    content={cleanContent}
                   />
                 );
               }
@@ -131,8 +152,6 @@ const Analysis = () => {
                 <StockMetrics symbol={searchedSymbol} data={stockData} />
               </div>
             )}
-
-
           </div>
         )}
       </div>

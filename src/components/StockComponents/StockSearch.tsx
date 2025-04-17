@@ -1,11 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCompanySearch } from "@/services/stockApi";
+import { useCompanySearch, useCompanySelect } from "@/services/stockApi";
 import CompanyCardSelect from "./CompanyCardSelect";
+import { useToast } from "@/hooks/use-toast";
 
 interface StockSearchProps {
   onSearch: (symbol: string) => void;
@@ -22,29 +23,54 @@ const StockSearch = ({
   isLoading = false,
   value = "",
 }: StockSearchProps) => {
-  const [symbol, setSymbol] = useState(value);
+  const [searchInput, setSearchInput] = useState(value);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCards, setShowCards] = useState(false);
+  const { toast } = useToast();
 
-  const { data: companyOptions } = useCompanySearch(searchQuery);
-
-  useEffect(() => {
-    setSymbol(value);
-  }, [value]);
+  // Company search query - only runs when user submits search
+  const { data: companyOptions, isLoading: isSearching } = useCompanySearch(searchQuery);
+  
+  // Company select query - manually triggered when a card is selected
+  const { refetch: selectCompany, isLoading: isSelecting } = useCompanySelect("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (symbol.trim()) {
-      setSearchQuery(symbol.trim());
+    if (searchInput.trim()) {
+      setSearchQuery(searchInput.trim());
       setShowCards(true);
+      
+      toast({
+        description: `Searching for ${searchInput.trim()}...`,
+        duration: 1500,
+      });
     }
   };
 
-  const handleCardSelect = (option: { label: string; value: string }) => {
-    setSymbol(option.value);
+  const handleCardSelect = async (option: { label: string; value: string }) => {
     setShowCards(false);
-    onSearch(option.value);
+    setSearchInput(option.value);
+    
+    // First call select-company API
+    try {
+      toast({
+        description: `Selected ${option.label}`,
+        duration: 1500,
+      });
+      
+      // Then pass to parent for further processing
+      onSearch(option.value);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Error selecting company. Please try again.",
+        duration: 3000,
+      });
+    }
   };
+
+  // Combined loading state
+  const combinedIsLoading = isLoading || isSearching || isSelecting;
 
   return (
     <>
@@ -53,21 +79,21 @@ const StockSearch = ({
           <form onSubmit={handleSubmit} className="flex space-x-2">
             <div className="relative flex-grow">
               <Input
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={placeholder}
                 className="pr-8"
-                disabled={isLoading}
+                disabled={combinedIsLoading}
               />
-              {symbol && (
+              {searchInput && (
                 <button
                   type="button"
                   onClick={() => {
-                    setSymbol("");
+                    setSearchInput("");
                     setShowCards(false);
                   }}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  disabled={isLoading}
+                  disabled={combinedIsLoading}
                 >
                   <X className="h-4 w-4 text-gray-400" />
                 </button>
@@ -75,11 +101,11 @@ const StockSearch = ({
             </div>
             <Button
               type="submit"
-              disabled={!symbol.trim() || isLoading}
+              disabled={!searchInput.trim() || combinedIsLoading}
               className="bg-trendmate-purple hover:bg-trendmate-purple-light"
             >
               <Search className="w-4 h-4 mr-2" />
-              {isLoading ? "Loading..." : buttonText}
+              {combinedIsLoading ? "Loading..." : buttonText}
             </Button>
           </form>
         </CardContent>
