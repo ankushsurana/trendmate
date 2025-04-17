@@ -6,14 +6,14 @@ import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useStockData } from "@/services/stockApi";
+import { useCompanySelect } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { useToast } from "@/hooks/use-toast";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
-  const { data: apiData, isLoading, error } = useStockData(searchedSymbol);
+  const { data: apiData, isLoading, error } = useCompanySelect(searchedSymbol);
   const { toast } = useToast();
 
   const extractOHLCVData = () => {

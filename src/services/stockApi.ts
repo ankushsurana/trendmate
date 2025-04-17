@@ -171,7 +171,6 @@ export const fetchComparisonData = async (companies: string): Promise<Comparison
 
 export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
   try {
-    // Updated integration ID as requested
     const request: ApiRequest = {
       appId: "uptiq-interns",
       integrationId: "trigger-real-time-alerts-6475",
@@ -198,7 +197,7 @@ export const useStockData = (companyName: string) => {
     queryKey: ['stockData', companyName],
     queryFn: () => fetchStockData(companyName),
     refetchOnWindowFocus: false,
-    enabled: !!companyName,  // Only fetch when companyName is provided
+    enabled: !!companyName,
   });
 };
 
@@ -207,7 +206,7 @@ export const useComparisonData = (companies: string) => {
     queryKey: ['comparisonData', companies],
     queryFn: () => fetchComparisonData(companies),
     refetchOnWindowFocus: false,
-    enabled: !!companies,  // Only fetch when companies is provided
+    enabled: !!companies,
   });
 };
 
@@ -216,8 +215,8 @@ export const useAlertsData = () => {
     queryKey: ['alertsData'],
     queryFn: fetchAlertsData,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,  // 5 minutes
-    retry: 1,  // Limit retries to avoid excessive API calls
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 };
 
@@ -273,7 +272,7 @@ export const useCompanySearch = (query: string) => {
     queryFn: () => fetchCompanyOptions(query),
     enabled: !!query && query.length >= 2,
     refetchOnWindowFocus: false,
-    staleTime: 60 * 1000,  // 1 minute
+    staleTime: 60 * 1000,
   });
 };
 
@@ -281,7 +280,7 @@ export const useCompanySelect = (companyName: string) => {
   return useQuery({
     queryKey: ['companySelect', companyName],
     queryFn: () => selectCompany(companyName),
-    enabled: false,  // Never automatically run this query
+    enabled: false,
     refetchOnWindowFocus: false
   });
 };
