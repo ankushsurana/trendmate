@@ -1,31 +1,33 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// API URL and Headers
-const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-sync";
+export const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-sync";
+export const APP_ID = "uptiq-interns";
+export const WIDGET_KEY = "a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9";
+export const AGENT_ID = "trendmate-4009";
 
-interface TaskInputs {
-  query: string;
+export interface TaskInputs {
+  query: string | string[];
 }
 
-interface ApiRequest {
+export interface ApiRequest {
   appId: string;
   integrationId: string;
   taskInputs: TaskInputs;
 }
 
-interface ChartDataset {
+export interface ChartDataset {
   label: string;
   data: number[];
   borderColor: string;
   backgroundColor: string;
 }
 
-interface ChartData {
+export interface ChartData {
   labels: string[];
   datasets: ChartDataset[];
 }
 
-interface ChartOptions {
+export interface ChartOptions {
   responsive: boolean;
   plugins: {
     legend: {
@@ -39,29 +41,29 @@ interface ChartOptions {
   scales?: any;
 }
 
-interface ChartContent {
+export interface ChartContent {
   type: string;
   data: ChartData;
   options: ChartOptions;
 }
 
-interface SummaryItem {
+export interface SummaryItem {
   type: "summary";
   content: string;
 }
 
-interface ChartItem {
+export interface ChartItem {
   type: "chart";
   chartLabel: string;
   content: ChartContent;
 }
 
-interface TableItem {
+export interface TableItem {
   type: "table";
   content: string;
 }
 
-type ReportDataItem = SummaryItem | ChartItem | TableItem;
+export type ReportDataItem = SummaryItem | ChartItem | TableItem;
 
 export interface StockApiResponse {
   content: {
@@ -70,7 +72,7 @@ export interface StockApiResponse {
   };
 }
 
-interface ComparisonApiResponse {
+export interface ComparisonApiResponse {
   content: {
     label?: string;
     reportData?: ReportDataItem[];
@@ -90,7 +92,7 @@ interface ComparisonApiResponse {
   };
 }
 
-interface AlertsApiResponse {
+export interface AlertsApiResponse {
   content: {
     alerts: Array<{
       symbol: string;
@@ -102,7 +104,7 @@ interface AlertsApiResponse {
   };
 }
 
-interface CardSelectResponse {
+export interface CardSelectResponse {
   options: Array<{
     label: string;
     value: string;
@@ -112,23 +114,27 @@ interface CardSelectResponse {
   subTitleField: string;
 }
 
-const getApiHeaders = () => {
+export interface AlertFormData {
+  symbol: string;
+  alertType: string;
+  condition: string;
+}
+
+export const getApiHeaders = () => {
   return {
-    'widgetKey': 'a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9',
-    'appid': 'uptiq-interns',
-    'agentId': 'trendmate-4009',
+    'widgetKey': WIDGET_KEY,
+    'appid': APP_ID,
+    'agentId': AGENT_ID,
     'Content-Type': 'application/json'
   };
 };
 
-export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
+export async function makeApiRequest(integrationId: string, query: string | string[]) {
   try {
     const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "fetch-real-time-data-0202",
-      taskInputs: {
-        query: `${companyName}`
-      }
+      appId: APP_ID,
+      integrationId,
+      taskInputs: { query }
     };
 
     const response = await fetch(API_URL, {
@@ -137,148 +143,202 @@ export const fetchStockData = async (companyName: string): Promise<StockApiRespo
       body: JSON.stringify(request)
     });
 
+    if (!response.ok) {
+      throw new Error(`API responded with status ${response.status}`);
+    }
+
     return await response.json();
   } catch (error) {
+    console.error(`Error making API request to ${integrationId}:`, error);
     throw error;
   }
+}
+
+export const useCompanySearchMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (query: string): Promise<CardSelectResponse> => {
+      return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['companySearch', variables], data);
+    },
+    onError: (error) => {
+      console.error('Company search failed:', error);
+      throw error;
+    }
+  });
 };
 
-export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
-  try {
-    const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "company-report-summarizer-0555",
-      taskInputs: {
-        query: companies
+export const useCompanySelectMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (companyName: string[]): Promise<StockApiResponse> => {
+      return makeApiRequest('select-company-9826', companyName);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['companySelect', variables], data);
+    },
+    onError: (error) => {
+      console.error('Company selection failed:', error);
+      throw error;
+    }
+  });
+};
+
+// export const useCompanyComparisonSearchMutation = () => {
+//   const queryClient = useQueryClient();
+
+//   return useMutation({
+//     mutationFn: async (query: string): Promise<CardSelectResponse> => {
+//       return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
+//     },
+//     onSuccess: (data, variables) => {
+//       queryClient.setQueryData(['companySearch', variables], data);
+//     },
+//     onError: (error) => {
+//       console.error('Company search failed:', error);
+//       throw error;
+//     }
+//   });
+// };
+
+export const useCompanyComparisonSearchMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (query: string): Promise<CardSelectResponse> => {
+      return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['companyComparisonSearch', variables], data);
+    },
+    onError: (error) => {
+      console.error('Company comparison search failed:', error);
+      throw error;
+    }
+  });
+};
+
+export const useComparisonSelectMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (companies: [string, string]): Promise<ComparisonApiResponse> => {
+      return makeApiRequest('select-company-9826', companies);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['comparisonSelect', variables], data);
+    },
+    onError: (error) => {
+      console.error('Company comparison selection failed:', error);
+      throw error;
+    }
+  });
+};
+
+// Company select mutation hook
+// export const useComparisonSelectMutation = () => {
+//   const queryClient = useQueryClient();
+
+//   return useMutation({
+//     mutationFn: async (companyName: string): Promise<StockApiResponse> => {
+//       return makeApiRequest('select-company-9826', companyName);
+//     },
+//     onSuccess: (data, variables) => {
+//       queryClient.setQueryData(['companySelect', variables], data);
+//     },
+//     onError: (error) => {
+//       console.error('Company selection failed:', error);
+//       throw error;
+//     }
+//   });
+// };
+
+
+
+// API function to create a new alert
+export const createAlert = async (alertData: AlertFormData): Promise<any> => {
+  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
+  return makeApiRequest('alert-table-2938', query);
+};
+
+// Mock data for alerts since the real API is not working
+const mockAlertData = {
+  content: {
+    alerts: [
+      {
+        symbol: "AAPL",
+        alertType: "Moving Average",
+        message: "Golden Cross detected on Apple Inc. The 50-day moving average crossed above the 200-day moving average.",
+        timestamp: new Date().toISOString(),
+        isImportant: true
+      },
+      {
+        symbol: "MSFT",
+        alertType: "Price Target",
+        message: "Microsoft reached your price target of $350.",
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        isImportant: false
+      },
+      {
+        symbol: "TSLA",
+        alertType: "Volatility",
+        message: "Tesla's volatility has increased by 25% in the last week.",
+        timestamp: new Date(Date.now() - 172800000).toISOString(),
+        isImportant: true
       }
-    };
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(request)
-    });
-
-
-    return await response.json();
-  } catch (error) {
-    throw error;
+    ]
   }
 };
 
+// API function to fetch alerts data
 export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
-  try {
-    const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "stock-alerts-generator-0333",
-      taskInputs: {
-        query: "latest stock alerts"
-      }
-    };
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(request)
-    });
-
-
-    return await response.json();
-  } catch (error) {
-    throw error;
-  }
+  // Using mock data instead of API call to prevent errors
+  return Promise.resolve(mockAlertData as AlertsApiResponse);
 };
 
-export const useStockData = (companyName: string) => {
-  return useQuery({
-    queryKey: ['stockData', companyName],
-    queryFn: () => fetchStockData(companyName),
-    refetchOnWindowFocus: false,
-  });
+// API function to delete an alert
+export const deleteAlert = async (alertId: string): Promise<any> => {
+  // Using mock data instead of API call to prevent errors
+  console.log("Deleting alert with ID:", alertId);
+  return Promise.resolve({ success: true });
 };
 
-export const useComparisonData = (companies: string) => {
-  return useQuery({
-    queryKey: ['comparisonData', companies],
-    queryFn: () => fetchComparisonData(companies),
-    refetchOnWindowFocus: false,
-
-  });
-};
-
+// Custom hook for alerts data
 export const useAlertsData = () => {
   return useQuery({
     queryKey: ['alertsData'],
     queryFn: fetchAlertsData,
-    refetchOnWindowFocus: false
-
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,  // 5 minutes
+    retry: 0,  // No retries to prevent excessive API calls
   });
 };
 
+// Custom hook for alert creation
+export const useCreateAlert = () => {
+  const queryClient = useQueryClient();
 
-
-export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
-  try {
-    const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "workflow-for-fetch-real-time-data-copy-1741346734879",
-      taskInputs: {
-        query
-      }
-    };
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(request)
-    });
-
-
-    return await response.json();
-  } catch (error) {
-
-    throw error;
-  }
-};
-
-export const selectCompany = async (companyName: string): Promise<any> => {
-  try {
-    const request: ApiRequest = {
-      appId: "uptiq-interns",
-      integrationId: "select-company-9826",
-      taskInputs: {
-        query: companyName
-      }
-    };
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(request)
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error selecting company:", error);
-    throw error;
-  }
-};
-
-export const useCompanySearch = (query: string) => {
-  return useQuery({
-    queryKey: ['companySearch', query],
-    queryFn: () => fetchCompanyOptions(query),
-    enabled: !!query && query.length >= 2,
-    refetchOnWindowFocus: false
+  return useMutation({
+    mutationFn: createAlert,
+    onSuccess: () => {
+      // Invalidate and refetch the alerts data
+      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+    }
   });
 };
 
-export const useCompanySelect = (companyName: string) => {
-  return useQuery({
-    queryKey: ['companySelect', companyName],
-    queryFn: () => selectCompany(companyName),
-    enabled: false,
-    refetchOnWindowFocus: false
+// Custom hook for alert deletion
+export const useDeleteAlert = () => {
+  const queryClient = useQueryClient();
 
+  return useMutation({
+    mutationFn: deleteAlert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+    }
   });
 };

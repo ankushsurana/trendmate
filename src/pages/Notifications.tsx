@@ -3,7 +3,7 @@ import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { useAlertsData } from "@/services/stockApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const Notifications = () => {
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Recent Alerts</h2>
-              
+
               {isLoading ? (
                 <Card className="dashboard-card">
                   <CardContent className="p-6 flex justify-center items-center h-40">
@@ -111,8 +111,8 @@ const Notifications = () => {
                             {subscription.type} ({subscription.threshold})
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteSubscription(subscription.id)}
                         >
@@ -137,7 +137,7 @@ const Notifications = () => {
                       </div>
                       <Button variant="outline" size="sm">Configure</Button>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="font-medium">Browser Notifications</div>

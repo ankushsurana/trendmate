@@ -1,49 +1,50 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCompanySearch } from "@/services/stockApi";
 import CompanyCardSelect from "./CompanyCardSelect";
+import { useToast } from "@/hooks/use-toast";
 
 interface StockSearchProps {
   onSearch: (symbol: string) => void;
+  onCardSelect?: (option: { label: string; value: string }) => void;
   placeholder?: string;
   buttonText?: string;
   isLoading?: boolean;
   value?: string;
+  showCards?: boolean;
+  companyOptions?: any;
 }
 
 const StockSearch = ({
   onSearch,
+  onCardSelect,
   placeholder = "Enter a company name (e.g. Walmart)",
   buttonText = "Analyze",
   isLoading = false,
   value = "",
+  showCards = false,
+  companyOptions = null
 }: StockSearchProps) => {
-  const [symbol, setSymbol] = useState(value);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showCards, setShowCards] = useState(false);
-
-  const { data: companyOptions } = useCompanySearch(searchQuery);
-
-  useEffect(() => {
-    setSymbol(value);
-  }, [value]);
+  const [searchInput, setSearchInput] = useState(value);
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (symbol.trim()) {
-      setSearchQuery(symbol.trim());
-      setShowCards(true);
+    if (searchInput.trim()) {
+      onSearch(searchInput.trim());
     }
   };
 
   const handleCardSelect = (option: { label: string; value: string }) => {
-    setSymbol(option.value);
-    setShowCards(false);
-    onSearch(option.value);
+    if (onCardSelect) {
+      onCardSelect(option);
+      toast({
+        description: `Selected ${option.label}`,
+        duration: 1500,
+      });
+    }
   };
 
   return (
@@ -53,19 +54,16 @@ const StockSearch = ({
           <form onSubmit={handleSubmit} className="flex space-x-2">
             <div className="relative flex-grow">
               <Input
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={placeholder}
                 className="pr-8"
                 disabled={isLoading}
               />
-              {symbol && (
+              {searchInput && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSymbol("");
-                    setShowCards(false);
-                  }}
+                  onClick={() => setSearchInput("")}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2"
                   disabled={isLoading}
                 >
@@ -75,7 +73,7 @@ const StockSearch = ({
             </div>
             <Button
               type="submit"
-              disabled={!symbol.trim() || isLoading}
+              disabled={!searchInput.trim() || isLoading}
               className="bg-trendmate-purple hover:bg-trendmate-purple-light"
             >
               <Search className="w-4 h-4 mr-2" />
@@ -85,11 +83,15 @@ const StockSearch = ({
         </CardContent>
       </Card>
 
-      {showCards && companyOptions && (
-        <CompanyCardSelect
-          options={companyOptions.options}
-          onSelect={handleCardSelect}
-        />
+      {showCards && companyOptions && companyOptions.options && companyOptions.options.length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="pt-6">
+            <CompanyCardSelect
+              options={companyOptions.options}
+              onSelect={handleCardSelect}
+            />
+          </CardContent>
+        </Card>
       )}
     </>
   );
