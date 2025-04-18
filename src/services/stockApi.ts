@@ -119,9 +119,11 @@ export interface CardSelectResponse {
 }
 
 export interface AlertFormData {
-  symbol: string;
-  alertType: string;
-  condition: string;
+  Alerts: {
+    symbol: string;
+    alertType: string;
+    condition: string;
+  };
 }
 
 // Common API headers
@@ -182,10 +184,20 @@ export const useCompanySelectMutation = () => {
 
 // ===== ALERTS API =====
 
-// API function to create a new alert
-export const createAlert = async (alertData: AlertFormData): Promise<any> => {
-  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
-  return makeApiRequest('alert-table-2938', query);
+// API function to create a new alert with the correct format
+export const useCreateAlertMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (alertData: AlertFormData): Promise<any> => {
+      const query = JSON.stringify(alertData);
+      return makeApiRequest('alert-table-2938', query);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch alerts data
+      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+    }
+  });
 };
 
 // Mock data for alerts since the real API is not working
@@ -218,48 +230,32 @@ const mockAlertData = {
 };
 
 // API function to fetch alerts data
-export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
-  // Using mock data instead of API call to prevent errors
-  return Promise.resolve(mockAlertData as AlertsApiResponse);
+export const useAlertsDataQuery = () => {
+  return useQuery({
+    queryKey: ['alertsData'],
+    queryFn: async (): Promise<AlertsApiResponse> => {
+      try {
+        const response = await makeApiRequest('alert-table-2938', 'get-alerts');
+        return response;
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+        // Fall back to mock data for demo purposes
+        return mockAlertData as AlertsApiResponse;
+      }
+    },
+    staleTime: 60000 // 1 minute
+  });
 };
 
 // API function to delete an alert
-export const deleteAlert = async (alertId: string): Promise<any> => {
-  // Using mock data instead of API call to prevent errors
-  console.log("Deleting alert with ID:", alertId);
-  return Promise.resolve({ success: true });
-};
-
-// Custom hook for alerts data
-export const useAlertsData = () => {
-  return useQuery({
-    queryKey: ['alertsData'],
-    queryFn: fetchAlertsData,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,  // 5 minutes
-    retry: 0,  // No retries to prevent excessive API calls
-  });
-};
-
-// Custom hook for alert creation
-export const useCreateAlert = () => {
+export const useDeleteAlertMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: createAlert,
-    onSuccess: () => {
-      // Invalidate and refetch the alerts data
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-    }
-  });
-};
-
-// Custom hook for alert deletion
-export const useDeleteAlert = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: deleteAlert,
+    mutationFn: async (alertId: string): Promise<any> => {
+      const query = `delete-alert-${alertId}`;
+      return makeApiRequest('alert-table-2938', query);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
     }
