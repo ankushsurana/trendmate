@@ -5,31 +5,32 @@ import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
 import ComparisonReport from "@/components/StockComponents/ComparisonReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useCompanySearch, useCompanySelect } from "@/services/stockApi";
+import { useCompanySearchMutation, useCompanySelectMutation } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
 
 const Comparison = () => {
   const [symbol1, setSymbol1] = useState("");
   const [symbol2, setSymbol2] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [showCards, setShowCards] = useState(false);
   const [isFirstCompanySelected, setIsFirstCompanySelected] = useState(false);
   const [selectedSymbol1, setSelectedSymbol1] = useState("");
   const [selectedSymbol2, setSelectedSymbol2] = useState("");
+  const [companyOptions, setCompanyOptions] = useState<any>(null);
+  const [comparisonData, setComparisonData] = useState<any>(null);
   
   const { toast } = useToast();
   
   const { 
-    data: companyOptions, 
+    mutate: searchCompanies, 
     isLoading: isSearching,
-    refetch: searchCompanies
-  } = useCompanySearch(searchQuery);
+    isError: isSearchError
+  } = useCompanySearchMutation();
 
   const {
-    data: comparisonData,
+    mutate: selectCompany,
     isLoading: isLoadingComparison,
-    refetch: selectCompany
-  } = useCompanySelect("");
+    isError: isComparisonError
+  } = useCompanySelectMutation();
 
   const handleSymbol1Change = (value: string) => {
     setSymbol1(value);
@@ -40,8 +41,9 @@ const Comparison = () => {
   };
 
   const handleCompare = async () => {
+    if (!symbol1 || !symbol2) return;
+    
     const query = `${symbol1}, ${symbol2}`;
-    setSearchQuery(query);
     setShowCards(true);
     setIsFirstCompanySelected(false);
     
@@ -50,7 +52,19 @@ const Comparison = () => {
       duration: 1500,
     });
 
-    await searchCompanies();
+    searchCompanies(query, {
+      onSuccess: (data) => {
+        setCompanyOptions(data);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          description: "Error searching for companies. Please try again.",
+          duration: 3000,
+        });
+        setShowCards(false);
+      }
+    });
   };
 
   const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
@@ -58,16 +72,24 @@ const Comparison = () => {
       setSelectedSymbol1(company.value);
       setIsFirstCompanySelected(true);
       
-      // Call select-company-9826 API for first company
-      await selectCompany();
-      
-      // After first company is selected, show cards for second company
-      const query = `${symbol1}, ${symbol2}`;
-      setSearchQuery(query);
-      
       toast({
         description: `Selected ${company.label} as first company`,
         duration: 1500,
+      });
+      
+      // Call select-company-9826 API for first company
+      selectCompany(company.value, {
+        onSuccess: (data) => {
+          // After first company is selected, show cards for second company
+          // We don't need to set comparisonData yet as we need both companies
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            description: "Error selecting first company. Please try again.",
+            duration: 3000,
+          });
+        }
       });
     } else {
       setSelectedSymbol2(company.value);
@@ -76,6 +98,20 @@ const Comparison = () => {
       toast({
         description: `Selected ${company.label} as second company. Generating comparison...`,
         duration: 1500,
+      });
+      
+      // After selecting the second company, we'll get the full comparison data
+      selectCompany(company.value, {
+        onSuccess: (data) => {
+          setComparisonData(data);
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            description: "Error generating comparison. Please try again.",
+            duration: 3000,
+          });
+        }
       });
     }
   };
@@ -89,12 +125,16 @@ const Comparison = () => {
   const handleReset = () => {
     setSymbol1("");
     setSymbol2("");
-    setSearchQuery("");
     setShowCards(false);
     setIsFirstCompanySelected(false);
     setSelectedSymbol1("");
     setSelectedSymbol2("");
+    setCompanyOptions(null);
+    setComparisonData(null);
   };
+
+  const isLoading = isSearching || isLoadingComparison;
+  const isError = isSearchError || isComparisonError;
 
   return (
     <PageLayout>
@@ -106,7 +146,7 @@ const Comparison = () => {
         <ComparisonSearch
           symbol1={symbol1}
           symbol2={symbol2}
-          isLoading={isSearching || isLoadingComparison}
+          isLoading={isLoading}
           onSymbol1Change={handleSymbol1Change}
           onSymbol2Change={handleSymbol2Change}
           onCompare={handleCompare}
@@ -124,12 +164,21 @@ const Comparison = () => {
               Enter two company names above and click "Compare" to see side-by-side comparison
             </div>
           </div>
-        ) : isSearching || isLoadingComparison ? (
+        ) : isLoading ? (
           <div className="mt-8 text-center py-16">
             <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
             <div className="text-trendmate-gray text-lg">
               Loading comparison data...
             </div>
+          </div>
+        ) : isError ? (
+          <div className="mt-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading comparison data. Please try again with different companies.
+              </AlertDescription>
+            </Alert>
           </div>
         ) : comparisonData ? (
           <ComparisonReport 

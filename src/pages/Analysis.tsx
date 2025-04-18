@@ -6,26 +6,36 @@ import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useStockData, useCompanySelect } from "@/services/stockApi";
+import { useCompanySearchMutation, useCompanySelectMutation } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
-  
-  // Only call when we have a symbol to select
-  const { data: apiData, isLoading: isLoadingStockData, isError: isStockDataError } = useStockData(searchedSymbol);
-  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect("");
+  const [companyOptions, setCompanyOptions] = useState<any>(null);
+  const [showCards, setShowCards] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
   
   const { toast } = useToast();
-  const isLoading = isLoadingStockData || isSelectingCompany;
+  
+  // Use mutation hooks
+  const { 
+    mutate: searchCompanies, 
+    isLoading: isSearching,
+  } = useCompanySearchMutation();
+
+  const { 
+    mutate: selectCompany, 
+    isLoading: isSelectingCompany 
+  } = useCompanySelectMutation();
 
   const extractOHLCVData = () => {
-    if (!apiData) return null;
+    if (!analysisData) return null;
 
-    const ohlcvSummary = apiData.content.reportData.find(
+    const ohlcvSummary = analysisData.content.reportData.find(
       (item) => item.type === "summary" && item.content.includes("OHLCV")
     );
 
@@ -58,29 +68,66 @@ const Analysis = () => {
     };
   };
 
-  const handleSearch = async (symbol: string) => {
-    if (!symbol.trim()) return;
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return;
     
-    try {
-      setSearchedSymbol(symbol);
-      
-      toast({
-        description: `Analyzing ${symbol}...`,
-        duration: 1500,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        description: "Error selecting company. Please try again.",
-        duration: 3000,
-      });
-    }
+    setShowCards(true);
+    setIsLoading(true);
+    setIsError(false);
+    
+    toast({
+      description: `Searching for ${query}...`,
+      duration: 1500,
+    });
+
+    searchCompanies(query, {
+      onSuccess: (data) => {
+        setCompanyOptions(data);
+        setIsLoading(false);
+      },
+      onError: (error) => {
+        setIsError(true);
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          description: "Error searching for companies. Please try again.",
+          duration: 3000,
+        });
+      }
+    });
+  };
+
+  const handleCardSelect = (company: { label: string; value: string }) => {
+    setSearchedSymbol(company.value);
+    setShowCards(false);
+    setIsLoading(true);
+    
+    toast({
+      description: `Analyzing ${company.label}...`,
+      duration: 1500,
+    });
+    
+    selectCompany(company.value, {
+      onSuccess: (data) => {
+        setAnalysisData(data);
+        setIsLoading(false);
+      },
+      onError: (error) => {
+        setIsError(true);
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          description: "Error analyzing company. Please try again.",
+          duration: 3000,
+        });
+      }
+    });
   };
 
   const extractCompanySummary = () => {
-    if (!apiData || !apiData.content || !apiData.content.reportData) return [];
+    if (!analysisData || !analysisData.content || !analysisData.content.reportData) return [];
 
-    const firstSummary = apiData.content.reportData.find(item => item.type === "summary");
+    const firstSummary = analysisData.content.reportData.find(item => item.type === "summary");
 
     if (!firstSummary || firstSummary.type !== "summary") return [];
 
@@ -102,9 +149,16 @@ const Analysis = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Stock Analysis</h1>
 
-        <StockSearch onSearch={handleSearch} isLoading={isLoading} value={searchedSymbol} />
+        <StockSearch 
+          onSearch={handleSearch} 
+          isLoading={isLoading} 
+          value={searchedSymbol} 
+          onCardSelect={handleCardSelect}
+          showCards={showCards}
+          companyOptions={companyOptions}
+        />
 
-        {!searchedSymbol ? (
+        {!searchedSymbol && !showCards ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
               Enter a company name above to see detailed analysis
@@ -114,10 +168,10 @@ const Analysis = () => {
           <div className="mt-8 text-center py-16">
             <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
             <div className="text-trendmate-gray text-lg">
-              Loading analysis for {searchedSymbol}...
+              Loading analysis for {searchedSymbol || "company"}...
             </div>
           </div>
-        ) : isStockDataError ? (
+        ) : isError ? (
           <div className="mt-8">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -126,7 +180,7 @@ const Analysis = () => {
               </AlertDescription>
             </Alert>
           </div>
-        ) : apiData ? (
+        ) : analysisData ? (
           <div className="mt-8 space-y-8">
             <Alert variant="default" className="bg-amber-50 border border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-700" />
@@ -141,7 +195,7 @@ const Analysis = () => {
               title="Company Summary"
             />
 
-            {apiData.content.reportData.map((item, index) => {
+            {analysisData.content.reportData.map((item, index) => {
               if (item.type === "chart") {
                 return (
                   <DynamicChart
@@ -171,13 +225,7 @@ const Analysis = () => {
               </div>
             )}
           </div>
-        ) : (
-          <div className="mt-8 text-center py-16">
-            <div className="text-trendmate-gray text-lg">
-              No data available for {searchedSymbol}
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
     </PageLayout>
   );

@@ -1,3 +1,4 @@
+
 // Import dependencies
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -123,11 +124,6 @@ export interface AlertFormData {
   condition: string;
 }
 
-// Integration IDs
-const COMPANY_SEARCH_INTEGRATION_ID = "workflow-for-fetch-real-time-data-copy-1741346734879";
-const COMPANY_SELECT_INTEGRATION_ID = "select-company-9826";
-const ALERT_CREATE_INTEGRATION_ID = "alert-table-2938";
-
 // Common API headers
 export const getApiHeaders = () => {
   return {
@@ -164,69 +160,23 @@ export async function makeApiRequest(integrationId: string, query: string) {
   }
 }
 
-// ===== COMPANY SEARCH API =====
+// ===== COMPANY SEARCH API USING MUTATION =====
 
-// API function to fetch company options
-export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
-  return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
-};
-
-// API function to select a company
-export const selectCompany = async (companyName: string): Promise<any> => {
-  return makeApiRequest('select-company-9826', companyName);
-};
-
-// Custom hook for company search
-export const useCompanySearch = (query: string) => {
-  return useQuery({
-    queryKey: ['companySearch', query],
-    queryFn: () => fetchCompanyOptions(query),
-    enabled: false, // Don't auto-fetch, we'll manually trigger with refetch
-    refetchOnWindowFocus: false,
+// Company search mutation hook
+export const useCompanySearchMutation = () => {
+  return useMutation({
+    mutationFn: async (query: string): Promise<CardSelectResponse> => {
+      return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
+    }
   });
 };
 
-// Custom hook for company selection
-export const useCompanySelect = (companyName: string) => {
-  return useQuery({
-    queryKey: ['companySelect', companyName],
-    queryFn: () => selectCompany(companyName),
-    enabled: false, // Don't auto-fetch, we'll manually trigger with refetch
-    refetchOnWindowFocus: false,
-  });
-};
-
-// ===== STOCK DATA API =====
-
-// API function to fetch stock data
-export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
-  return makeApiRequest('select-company-9826', companyName);
-};
-
-// Custom hook for stock data
-export const useStockData = (companyName: string) => {
-  return useQuery({
-    queryKey: ['stockData', companyName],
-    queryFn: () => fetchStockData(companyName),
-    refetchOnWindowFocus: false,
-    enabled: !!companyName && companyName.length > 0,  // Only fetch when companyName is provided
-  });
-};
-
-// ===== COMPARISON API =====
-
-// API function to fetch comparison data
-export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
-  return makeApiRequest('select-company-9826', companies);
-};
-
-// Custom hook for comparison data
-export const useComparisonData = (companies: string) => {
-  return useQuery({
-    queryKey: ['comparisonData', companies],
-    queryFn: () => fetchComparisonData(companies),
-    refetchOnWindowFocus: false,
-    enabled: !!companies && companies.length > 0,  // Only fetch when companies is provided
+// Company select mutation hook
+export const useCompanySelectMutation = () => {
+  return useMutation({
+    mutationFn: async (companyName: string): Promise<any> => {
+      return makeApiRequest('select-company-9826', companyName);
+    }
   });
 };
 
