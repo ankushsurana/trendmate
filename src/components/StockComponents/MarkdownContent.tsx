@@ -1,30 +1,37 @@
-
-import { FC } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface MarkdownContentProps {
   content: string;
+  title?: string;
+  className?: string;
 }
 
-const MarkdownContent: FC<MarkdownContentProps> = ({ content }) => {
-  // Clean up content - remove HTML tags but preserve markdown formatting
-  const cleanContent = content
-    .replace(/<\/?(?!br)[^>]+>/g, '') // Remove all HTML tags except <br>
-    .replace(/<br\s*\/?>/gi, '\n\n') // Replace <br> tags with newlines
-    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular spaces
-    .replace(/(\n\s*){3,}/g, '\n\n'); // Remove excessive newlines
-    
+
+const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, title, className }) => {
   return (
-    <Card className="dashboard-card overflow-hidden">
-      <CardContent className="p-6 prose max-w-none">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]} 
+    <Card className={`dashboard-card ${className || ''}`}>
+      {title && (
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent>
+        <ReactMarkdown
+          components={{
+            div: ({ children }) => (
+              <div className="prose prose-sm max-w-none text-trendmate-dark">
+                {children}
+              </div>
+            ),
+          }}
+          remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
         >
-          {cleanContent}
+          {content}
         </ReactMarkdown>
       </CardContent>
     </Card>

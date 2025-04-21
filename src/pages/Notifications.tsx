@@ -1,9 +1,10 @@
+// Notification
 
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
 import { useAlertsDataQuery, useCreateAlertMutation, useDeleteAlertMutation, AlertFormData } from "@/services/stockApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -35,13 +36,13 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -52,7 +53,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 const alertFormSchema = z.object({
@@ -68,7 +68,7 @@ const Notifications = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [alertToDelete, setAlertToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
+
   const { toast } = useToast();
   const createAlertMutation = useCreateAlertMutation();
   const deleteAlertMutation = useDeleteAlertMutation();
@@ -84,55 +84,61 @@ const Notifications = () => {
 
   const selectedAlertType = form.watch("alertType");
 
+  // const handleDeleteAlert = async (alertId: string) => {
+  //   try {
+  //     await deleteAlertMutation.mutateAsync(alertId);
+
+  //     toast({
+  //       title: "Alert deleted",
+  //       description: "Your alert has been successfully deleted.",
+  //       duration: 3000,
+  //     });
+
+  //     setAlertToDelete(null);
+  //     setIsDeleteDialogOpen(false);
+  //   } catch (error) {
+  //     toast({
+  //       variant: "destructive",
+  //       title: "Error",
+  //       description: "Failed to delete alert. Please try again.",
+  //       duration: 3000,
+  //     });
+  //   }
+  // };
+
   const handleDeleteAlert = async (alertId: string) => {
     try {
       await deleteAlertMutation.mutateAsync(alertId);
-      
-      toast({
-        title: "Alert deleted",
-        description: "Your alert has been successfully deleted.",
-        duration: 3000,
-      });
-      
-      setAlertToDelete(null);
       setIsDeleteDialogOpen(false);
+      setAlertToDelete(null);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete alert. Please try again.",
-        duration: 3000,
-      });
+      console.error("Error deleting alert:", error);
     }
   };
 
   const onSubmit = async (data: AlertFormValues) => {
     try {
-      // Format the data according to the required structure
       const alertData: AlertFormData = {
-        Alerts: {
-          symbol: data.symbol,
-          alertType: data.alertType,
-          condition: data.condition
-        }
+        symbol: data.symbol,
+        alertType: data.alertType,
+        condition: data.condition
       };
-      
-      // Call the API to create a new alert
+
       await createAlertMutation.mutateAsync(alertData);
-      
+
       toast({
         title: "Alert created",
         description: `New ${data.alertType} alert for ${data.symbol} has been created.`,
         duration: 3000,
       });
-      
+
       setIsDialogOpen(false);
       form.reset();
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create alert. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create alert",
         duration: 3000,
       });
     }
@@ -143,7 +149,7 @@ const Notifications = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-trendmate-dark">Notifications</h1>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-trendmate-purple hover:bg-trendmate-purple-light">
@@ -173,15 +179,15 @@ const Notifications = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="alertType"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Alert Type</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
@@ -198,15 +204,15 @@ const Notifications = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="condition"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Condition</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
@@ -232,10 +238,10 @@ const Notifications = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="flex justify-end pt-4">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={createAlertMutation.isPending}
                     >
                       {createAlertMutation.isPending ? (
@@ -259,7 +265,7 @@ const Notifications = () => {
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Recent Alerts</h2>
-              
+
               {isLoading ? (
                 <Card className="dashboard-card">
                   <CardContent className="p-6 flex justify-center items-center h-40">
@@ -351,9 +357,9 @@ const Notifications = () => {
                             <TableCell className="font-medium">{alert.symbol}</TableCell>
                             <TableCell>{alert.alertType}</TableCell>
                             <TableCell>
-                              {alert.message.includes("bullish") ? "Bullish" : 
-                               alert.message.includes("bearish") ? "Bearish" :
-                               alert.message.includes("over bought") ? "Over Bought" : "Over Sold"}
+                              {alert.message.includes("bullish") ? "Bullish" :
+                                alert.message.includes("bearish") ? "Bearish" :
+                                  alert.message.includes("over bought") ? "Over Bought" : "Over Sold"}
                             </TableCell>
                           </TableRow>
                         ))
@@ -376,7 +382,7 @@ const Notifications = () => {
                       </div>
                       <Button variant="outline" size="sm">Configure</Button>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="font-medium">Browser Notifications</div>

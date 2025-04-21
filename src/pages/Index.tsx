@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/Layout/PageLayout";
@@ -9,7 +8,6 @@ import {
   BarChart3,
   ArrowRightCircle,
   LineChart,
-  BarChart2,
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
@@ -19,7 +17,6 @@ const Index = () => {
 
   return (
     <PageLayout>
-      {/* Hero Section */}
       <section className="relative gradient-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
           <div className="md:flex md:items-center md:justify-between">
@@ -28,13 +25,13 @@ const Index = () => {
                 Make <span className="text-trendmate-purple">Smarter</span> Investment Decisions
               </h1>
               <p className="mt-6 text-lg text-gray-600 max-w-2xl">
-                Trendmate is your AI-powered stock market assistant. Analyze trends, detect signals, 
+                Trendmate is your AI-powered stock market assistant. Analyze trends, detect signals,
                 and compare companies with cutting-edge technology to stay ahead in the market.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button className="bg-trendmate-purple hover:bg-trendmate-purple-light text-white" size="lg">
                   <Link to="/analysis" className="flex items-center">
-                    Get Started 
+                    Get Started
                     <ChevronRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -45,7 +42,7 @@ const Index = () => {
             </div>
             <div className="mt-10 md:mt-0 md:w-1/2 flex justify-center">
               <div className="relative w-full max-w-md">
-                <div 
+                <div
                   className="rounded-xl shadow-2xl overflow-hidden border border-gray-100"
                   style={{
                     transform: isHovered ? "translateY(-5px)" : "translateY(0)",
@@ -54,9 +51,9 @@ const Index = () => {
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                 >
-                  <img 
-                    src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
-                    alt="Stock market analysis dashboard" 
+                  <img
+                    src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+                    alt="Stock market analysis dashboard"
                     className="w-full h-auto"
                   />
                 </div>
@@ -68,7 +65,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Wave shape divider */}
         <div className="absolute bottom-0 left-0 right-0 h-16 overflow-hidden">
           <svg
             data-name="Layer 1"
@@ -85,7 +81,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -119,7 +114,7 @@ const Index = () => {
             <Card className="stock-card">
               <CardContent className="p-8">
                 <div className="bg-trendmate-blue/10 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
-                  <BarChart2 className="h-6 w-6 text-trendmate-blue" />
+                  <BarChart3 className="h-6 w-6 text-trendmate-blue" />
                 </div>
                 <h3 className="text-xl font-bold text-trendmate-dark mb-3">Company Comparison</h3>
                 <p className="text-gray-600 mb-6">
@@ -218,8 +213,8 @@ const Index = () => {
           <p className="mt-4 text-lg max-w-2xl mx-auto">
             Join thousands of investors who are making smarter decisions with Trendmate
           </p>
-          <Button 
-            className="mt-8 bg-white text-trendmate-purple hover:bg-gray-100" 
+          <Button
+            className="mt-8 bg-white text-trendmate-purple hover:bg-gray-100"
             size="lg"
           >
             <Link to="/analysis">Get Started Now</Link>

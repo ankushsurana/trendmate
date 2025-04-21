@@ -1,189 +1,238 @@
-
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
-import StockSearch from "@/components/StockComponents/StockSearch";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import CompanyCardSelect from "@/components/StockComponents/CompanyCardSelect";
-import { useToast } from "@/hooks/use-toast";
+import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
 import ComparisonReport from "@/components/StockComponents/ComparisonReport";
-import { useCompanySearchMutation, useCompanySelectMutation, CardSelectResponse } from "@/services/stockApi";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useCompanyComparisonSearchMutation, useComparisonSelectMutation } from "@/services/stockApi";
+import { useToast } from "@/hooks/use-toast";
 
 const Comparison = () => {
-  const [company1, setCompany1] = useState("");
-  const [company2, setCompany2] = useState("");
-  const [selectedCompany1, setSelectedCompany1] = useState<string | null>(null);
-  const [selectedCompany2, setSelectedCompany2] = useState<string | null>(null);
-  const [companyOptions, setCompanyOptions] = useState<CardSelectResponse | null>(null);
-  const [showFirstCompanyCards, setShowFirstCompanyCards] = useState(false);
-  const [showSecondCompanyCards, setShowSecondCompanyCards] = useState(false);
-  const [step, setStep] = useState(1);
-  
-  const toast = useToast();
-  
-  const companySearchMutation = useCompanySearchMutation();
-  const companySelectMutation = useCompanySelectMutation();
+  const [symbol1, setSymbol1] = useState("");
+  const [symbol2, setSymbol2] = useState("");
+  const [showCards, setShowCards] = useState(false);
+  const [isFirstCompanySelected, setIsFirstCompanySelected] = useState(false);
+  const [selectedSymbol1, setSelectedSymbol1] = useState("");
+  const [selectedSymbol2, setSelectedSymbol2] = useState("");
+  const [companyOptions, setCompanyOptions] = useState<any>(null);
+  const [comparisonData, setComparisonData] = useState<any>(null);
+
+  const { toast } = useToast();
+
+  const {
+    mutate: searchCompanies,
+    isPending: isSearching,
+    isError: isSearchError
+  } = useCompanyComparisonSearchMutation();
+
+  const {
+    mutate: selectCompany,
+    isPending: isLoadingComparison,
+    isError: isComparisonError
+  } = useComparisonSelectMutation();
+
+  const handleSymbol1Change = (value: string) => {
+    setSymbol1(value);
+  };
+
+  const handleSymbol2Change = (value: string) => {
+    setSymbol2(value);
+  };
 
   const handleCompare = async () => {
-    if (!company1 || !company2) {
-      toast.toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter both company names",
-      });
-      return;
-    }
+    if (!symbol1 || !symbol2) return;
 
-    try {
-      const combinedQuery = `${company1}, ${company2}`;
-      const data = await companySearchMutation.mutateAsync(combinedQuery);
-      setCompanyOptions(data);
-      setShowFirstCompanyCards(true);
-      setStep(2);
-    } catch (error) {
-      toast.toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to search for companies. Please try again.",
-      });
-    }
+    // const query = `${symbol1} and ${symbol2}`;
+    setShowCards(true);
+    setIsFirstCompanySelected(false);
+
+    toast({
+      description: "Searching for companies...",
+      duration: 1500,
+    });
+
+    searchCompanies(symbol1, {
+      onSuccess: (data) => {
+        setCompanyOptions(data);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          description: "Error searching for companies. Please try again.",
+          duration: 3000,
+        });
+        setShowCards(false);
+      }
+    });
   };
 
-  const handleFirstCompanySelect = async (option: { label: string; value: string }) => {
-    try {
-      setSelectedCompany1(option.label);
-      await companySelectMutation.mutateAsync(option.label);
-      setShowFirstCompanyCards(false);
-      setShowSecondCompanyCards(true);
-      setStep(3);
-      toast.toast({
-        description: `Selected ${option.label} as first company`,
+  // const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
+  //   if (isFirstCompany) {
+  //     setSelectedSymbol1(company.value);
+  //     setIsFirstCompanySelected(true);
+
+  //     toast({
+  //       description: `Selected ${company.label} as first company`,
+  //       duration: 1500,
+  //     });
+
+  //     // Call select-company-9826 API for first company
+  //     selectCompany(company.value, {
+  //       onSuccess: (data) => {
+  //         // After first company is selected, show cards for second company
+  //         // We don't need to set comparisonData yet as we need both companies
+  //       },
+  //       onError: (error) => {
+  //         toast({
+  //           variant: "destructive",
+  //           description: "Error selecting first company. Please try again.",
+  //           duration: 3000,
+  //         });
+  //       }
+  //     });
+  //   } else {
+  //     setSelectedSymbol2(company.value);
+  //     setShowCards(false);
+
+  //     toast({
+  //       description: `Selected ${company.label} as second company. Generating comparison...`,
+  //       duration: 1500,
+  //     });
+
+  //     // After selecting the second company, we'll get the full comparison data
+  //     selectCompany(company.value, {
+  //       onSuccess: (data) => {
+  //         setComparisonData(data);
+  //       },
+  //       onError: (error) => {
+  //         toast({
+  //           variant: "destructive",
+  //           description: "Error generating comparison. Please try again.",
+  //           duration: 3000,
+  //         });
+  //       }
+  //     });
+  //   }
+  // };
+
+  const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
+    if (isFirstCompany) {
+      setSelectedSymbol1(company.value);
+      setIsFirstCompanySelected(true);
+
+      toast({
+        description: `Selected ${company.label} as first company`,
         duration: 1500,
       });
-    } catch (error) {
-      toast.toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to select company. Please try again.",
+
+      searchCompanies(symbol2, {
+        onSuccess: (data) => {
+          setCompanyOptions(data);
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            description: "Error searching for second company. Please try again.",
+            duration: 3000,
+          });
+        }
+      });
+
+    } else {
+      setSelectedSymbol2(company.value);
+      setShowCards(false);
+
+      toast({
+        description: `Generating comparison between ${selectedSymbol1} and ${company.value}...`,
+        duration: 1500,
+      });
+
+      selectCompany([selectedSymbol1, company.value], {
+        onSuccess: (data) => {
+          setComparisonData(data);
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            description: "Error generating comparison. Please try again.",
+            duration: 3000,
+          });
+        }
       });
     }
   };
 
-  const handleSecondCompanySelect = async (option: { label: string; value: string }) => {
-    try {
-      setSelectedCompany2(option.label);
-      await companySelectMutation.mutateAsync(option.label);
-      setShowSecondCompanyCards(false);
-      setStep(4);
-      toast.toast({
-        description: `Comparison of ${selectedCompany1} and ${option.label} loaded`,
-        duration: 1500,
-      });
-    } catch (error) {
-      toast.toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to select company. Please try again.",
-      });
-    }
+  const handleSwapSymbols = () => {
+    const tempSymbol = symbol1;
+    setSymbol1(symbol2);
+    setSymbol2(tempSymbol);
   };
+
+  const handleReset = () => {
+    setSymbol1("");
+    setSymbol2("");
+    setShowCards(false);
+    setIsFirstCompanySelected(false);
+    setSelectedSymbol1("");
+    setSelectedSymbol2("");
+    setCompanyOptions(null);
+    setComparisonData(null);
+  };
+
+  const isLoading = isSearching || isLoadingComparison;
+  const isError = isSearchError || isComparisonError;
 
   return (
     <PageLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Stock Comparison</h1>
-        
-        {step === 1 && (
-          <>
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Select Companies to Compare</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Company</label>
-                  <input
-                    type="text"
-                    value={company1}
-                    onChange={(e) => setCompany1(e.target.value)}
-                    placeholder="e.g. Apple"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-trendmate-purple"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Second Company</label>
-                  <input
-                    type="text"
-                    value={company2}
-                    onChange={(e) => setCompany2(e.target.value)}
-                    placeholder="e.g. Microsoft"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-trendmate-purple"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 flex justify-center">
-                <Button 
-                  onClick={handleCompare}
-                  disabled={!company1 || !company2 || companySearchMutation.isPending}
-                  className="bg-trendmate-purple hover:bg-trendmate-purple-light"
-                >
-                  {companySearchMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>Compare</>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
+        <h1 className="text-3xl font-bold text-trendmate-dark mb-8">
+          Company Comparison
+        </h1>
 
-        {showFirstCompanyCards && companyOptions && companyOptions.options && (
-          <Card className="dashboard-card mb-6">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Select First Company</h2>
-              <CompanyCardSelect 
-                options={companyOptions.options.filter(option => 
-                  option.label.toLowerCase().includes(company1.toLowerCase()))}
-                onSelect={handleFirstCompanySelect}
-              />
-            </CardContent>
-          </Card>
-        )}
+        <ComparisonSearch
+          symbol1={symbol1}
+          symbol2={symbol2}
+          isLoading={isLoading}
+          onSymbol1Change={handleSymbol1Change}
+          onSymbol2Change={handleSymbol2Change}
+          onCompare={handleCompare}
+          onSwap={handleSwapSymbols}
+          onReset={handleReset}
+          onCardSelect={handleCardSelect}
+          showCards={showCards}
+          companyOptions={companyOptions}
+          isFirstCompanySelected={isFirstCompanySelected}
+        />
 
-        {showSecondCompanyCards && companyOptions && companyOptions.options && (
-          <Card className="dashboard-card mb-6">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Select Second Company</h2>
-              <CompanyCardSelect 
-                options={companyOptions.options.filter(option => 
-                  option.label.toLowerCase().includes(company2.toLowerCase()))}
-                onSelect={handleSecondCompanySelect}
-              />
-            </CardContent>
-          </Card>
-        )}
-        
-        {step === 4 && selectedCompany1 && selectedCompany2 && (
-          <>
-            <div className="flex items-center justify-center mb-8">
-              <h2 className="text-xl font-semibold">{selectedCompany1}</h2>
-              <ArrowRight className="mx-4" />
-              <h2 className="text-xl font-semibold">{selectedCompany2}</h2>
+        {!showCards && !selectedSymbol1 && !selectedSymbol2 ? (
+          <div className="mt-8 text-center py-16">
+            <div className="text-trendmate-gray text-lg">
+              Enter two company names above and click "Compare" to see side-by-side comparison
             </div>
-            
-            {companySelectMutation.isPending ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-trendmate-purple"></div>
-                <p className="mt-4 text-lg text-gray-600">Generating comparison...</p>
-              </div>
-            ) : companySelectMutation.data ? (
-              <ComparisonReport data={companySelectMutation.data} />
-            ) : null}
-          </>
-        )}
+          </div>
+        ) : isLoading ? (
+          <div className="mt-8 text-center py-16">
+            <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
+            <div className="text-trendmate-gray text-lg">
+              Loading comparison data...
+            </div>
+          </div>
+        ) : isError ? (
+          <div className="mt-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading comparison data. Please try again with different companies.
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : comparisonData ? (
+          <ComparisonReport
+            data={comparisonData}
+            symbol1={selectedSymbol1}
+            symbol2={selectedSymbol2}
+          />
+        ) : null}
       </div>
     </PageLayout>
   );

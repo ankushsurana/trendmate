@@ -1,6 +1,5 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, BarChart, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface MetricProps {
   title: string;
@@ -16,9 +15,8 @@ const Metric = ({ title, value, change, isPositive }: MetricProps) => (
       <span className="text-2xl font-semibold">{value}</span>
       {change && (
         <span
-          className={`ml-2 text-sm ${
-            isPositive ? "text-green-600" : "text-red-600"
-          }`}
+          className={`ml-2 text-sm ${isPositive ? "text-green-600" : "text-red-600"
+            }`}
         >
           {isPositive ? "+" : "-"}
           {change}
@@ -41,14 +39,13 @@ interface StockMetricsProps {
   };
 }
 
-const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
-  // Use real data if provided, otherwise use mock data
+const StockMetrics = ({ data }: StockMetricsProps) => {
   const stockData = {
-    open: data?.open ?? 152.83,
-    high: data?.high ?? 155.41,
-    low: data?.low ?? 152.34,
-    close: data?.close ?? 154.92,
-    volume: data?.volume ?? 45823900,
+    open: data?.open,
+    high: data?.high,
+    low: data?.low,
+    close: data?.close,
+    volume: data?.volume,
     change: data?.change ?? 2.09,
     changePercent: data?.changePercent ?? 1.37,
   };
@@ -93,7 +90,7 @@ const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
             <div className="text-2xl font-semibold">{formatPrice(stockData.close)}</div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-6">
           <div>
             <div className="text-sm text-gray-500">Volume</div>
