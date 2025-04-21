@@ -20,9 +20,8 @@ const CrossoverAlert = ({
 }: CrossoverAlertProps) => {
   return (
     <Card
-      className={`border-l-4 dashboard-card ${
-        isImportant ? "border-l-trendmate-orange" : "border-l-trendmate-blue"
-      } animate-fade-in`}
+      className={`border-l-4 dashboard-card ${isImportant ? "border-l-trendmate-orange" : "border-l-trendmate-blue"
+        } animate-fade-in`}
     >
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center space-x-2">

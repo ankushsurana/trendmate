@@ -1,4 +1,6 @@
+import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Content } from "vaul";
 
 export const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-sync";
 export const APP_ID = "uptiq-interns";
@@ -72,6 +74,16 @@ export interface StockApiResponse {
   };
 }
 
+export interface CardSelectResponse {
+  options: Array<{
+    label: string;
+    value: string;
+    subTitle: string;
+  }>;
+  type: "cardSelect";
+  subTitleField: string;
+}
+
 export interface ComparisonApiResponse {
   content: {
     label?: string;
@@ -92,33 +104,28 @@ export interface ComparisonApiResponse {
   };
 }
 
+export interface AlertFormData {
+  symbol: string;
+  alertType: "MovingAverage" | "BollingerBands";
+  condition: string;
+}
+
+export interface AlertItem {
+  id: string;
+  symbol: string;
+  alertType: string;
+  message: string;
+  timestamp: string;
+  isImportant?: boolean;
+  condition?: string;
+}
+
 export interface AlertsApiResponse {
   content: {
-    alerts: Array<{
-      symbol: string;
-      alertType: string;
-      message: string;
-      timestamp: string;
-      isImportant?: boolean;
-    }>;
+    alerts: AlertItem[];
   };
 }
 
-export interface CardSelectResponse {
-  options: Array<{
-    label: string;
-    value: string;
-    subTitle: string;
-  }>;
-  type: "cardSelect";
-  subTitleField: string;
-}
-
-export interface AlertFormData {
-  symbol: string;
-  alertType: string;
-  condition: string;
-}
 
 export const getApiHeaders = () => {
   return {
@@ -259,10 +266,66 @@ export const useComparisonSelectMutation = () => {
 
 
 
-// API function to create a new alert
-export const createAlert = async (alertData: AlertFormData): Promise<any> => {
-  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
-  return makeApiRequest('alert-table-2938', query);
+// API function to create a new alert with the correct format
+// export const useCreateAlertMutation = () => {
+//   const queryClient = useQueryClient();
+//   const { toast } = useToast();
+
+//   return useMutation({
+//     mutationFn: async (alertData: AlertFormData): Promise<any> => {
+//       const query = JSON.stringify(alertData);
+//       return makeApiRequest('alert-table-2938', query);
+//     },
+//     onSuccess: () => {
+//       // Invalidate and refetch alerts data
+//       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+//     }
+//   });
+// };
+
+export const useCreateAlertMutation = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (alertData: AlertFormData): Promise<any> => {
+      // Format the request properly
+      const request: ApiRequest = {
+        appId: APP_ID,
+        integrationId: 'alert-table-2938',
+        taskInputs: {
+          query: JSON.stringify(alertData)
+        }
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: getApiHeaders(),
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to create alert: ${errorData.message}`);
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+      toast({
+        title: "Alert created",
+        description: "Your alert has been successfully created.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create alert. Please try again.",
+      });
+    }
+  });
 };
 
 // Mock data for alerts since the real API is not working
@@ -293,52 +356,84 @@ const mockAlertData = {
     ]
   }
 };
+export const useAlertsDataQuery = () => {
+  return useQuery({
+    queryKey: ['alertsData'],
+    queryFn: async (): Promise<AlertsApiResponse> => {
+      return mockAlertData as AlertsApiResponse;
 
-// API function to fetch alerts data
-export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
-  // Using mock data instead of API call to prevent errors
-  return Promise.resolve(mockAlertData as AlertsApiResponse);
+      // try {
+      //   const response = await makeApiRequest('alert-table-2938', 'get-alerts');
+      //   return response;
+      // } catch (error) {
+      //   console.error('Error fetching alerts:', error);
+      //   // Fall back to mock data for demo purposes
+      //   return mockAlertData as AlertsApiResponse;
+      // }
+    },
+    staleTime: 6000 // 1 minute
+  });
 };
 
 // API function to delete an alert
-export const deleteAlert = async (alertId: string): Promise<any> => {
-  // Using mock data instead of API call to prevent errors
-  console.log("Deleting alert with ID:", alertId);
-  return Promise.resolve({ success: true });
-};
+// export const useDeleteAlertMutation = () => {
+//   const queryClient = useQueryClient();
 
-// Custom hook for alerts data
-export const useAlertsData = () => {
-  return useQuery({
-    queryKey: ['alertsData'],
-    queryFn: fetchAlertsData,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,  // 5 minutes
-    retry: 0,  // No retries to prevent excessive API calls
-  });
-};
+//   return useMutation({
+//     mutationFn: async (alertId: string): Promise<any> => {
+//       const query = `delete-alert-${alertId}`;
+//       return makeApiRequest('alert-table-2938', query);
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+//     }
+//   });
+// };
 
-// Custom hook for alert creation
-export const useCreateAlert = () => {
+export const useDeleteAlertMutation = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
-    mutationFn: createAlert,
-    onSuccess: () => {
-      // Invalidate and refetch the alerts data
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-    }
-  });
-};
+    mutationFn: async (alertId: string): Promise<any> => {
+      // Format the request properly
+      const request: ApiRequest = {
+        appId: APP_ID,
+        integrationId: 'alert-table-2938',
+        taskInputs: {
+          query: JSON.stringify({
+            action: 'delete-alert',
+            alertId: alertId
+          })
+        }
+      };
 
-// Custom hook for alert deletion
-export const useDeleteAlert = () => {
-  const queryClient = useQueryClient();
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: getApiHeaders(),
+        body: JSON.stringify(request)
+      });
 
-  return useMutation({
-    mutationFn: deleteAlert,
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to delete alert: ${errorData.message}`);
+      }
+
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+      toast({
+        title: "Alert deleted",
+        description: "Your alert has been successfully deleted.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete alert. Please try again.",
+      });
     }
   });
 };
