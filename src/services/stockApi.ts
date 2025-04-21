@@ -119,9 +119,11 @@ export interface CardSelectResponse {
 }
 
 export interface AlertFormData {
-  symbol: string;
-  alertType: string;
-  condition: string;
+  Alerts: {
+    symbol: string;
+    alertType: string;
+    condition: string;
+  };
 }
 
 // Common API headers
@@ -160,74 +162,43 @@ export async function makeApiRequest(integrationId: string, query: string) {
   }
 }
 
-// ===== COMPANY SEARCH API =====
+// ===== COMPANY SEARCH API USING MUTATION =====
 
-// API function to fetch company options
-export const fetchCompanyOptions = async (query: string): Promise<CardSelectResponse> => {
-  return makeApiRequest("workflow-for-fetch-real-time-data-copy-1741346734879", query);
-};
-
-// API function to select a company
-export const selectCompany = async (companyName: string): Promise<any> => {
-  return makeApiRequest("select-company-9826", companyName);
-};
-
-// Custom hook for company search
-export const useCompanySearch = (query: string) => {
-  return useQuery({
-    queryKey: ['companySearch', query],
-    queryFn: () => fetchCompanyOptions(query),
-    enabled: !!query && query.length >= 2,
-    refetchOnWindowFocus: false,
-    staleTime: 60 * 1000,  // 1 minute
+// Company search mutation hook
+export const useCompanySearchMutation = () => {
+  return useMutation({
+    mutationFn: async (query: string): Promise<CardSelectResponse> => {
+      return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
+    }
   });
 };
 
-// Custom hook for company selection
-export const useCompanySelect = (companyName: string) => {
-  return useQuery({
-    queryKey: ['companySelect', companyName],
-    queryFn: () => selectCompany(companyName),
-    enabled: false,  // Never automatically run this query
-    refetchOnWindowFocus: false
-  });
-};
-
-// ===== STOCK DATA API =====
-
-// API function to fetch stock data
-export const fetchStockData = async (companyName: string): Promise<StockApiResponse> => {
-  return makeApiRequest("select-company-9826", companyName);
-};
-
-// Custom hook for stock data
-export const useStockData = (companyName: string) => {
-  return useQuery({
-    queryKey: ['stockData', companyName],
-    queryFn: () => fetchStockData(companyName),
-    refetchOnWindowFocus: false,
-    enabled: !!companyName && companyName.length > 0,  // Only fetch when companyName is provided
-  });
-};
-
-// ===== COMPARISON API =====
-
-// API function to fetch comparison data
-export const fetchComparisonData = async (companies: string): Promise<ComparisonApiResponse> => {
-  return makeApiRequest("select-company-9826", companies);
-};
-
-// Custom hook for comparison data
-export const useComparisonData = (companies: string) => {
-  return useQuery({
-    queryKey: ['comparisonData', companies],
-    queryFn: () => fetchComparisonData(companies),
-    refetchOnWindowFocus: false,
-    enabled: !!companies && companies.length > 0,  // Only fetch when companies is provided
+// Company select mutation hook
+export const useCompanySelectMutation = () => {
+  return useMutation({
+    mutationFn: async (companyName: string): Promise<any> => {
+      return makeApiRequest('select-company-9826', companyName);
+    }
   });
 };
 
 // ===== ALERTS API =====
+
+// API function to create a new alert with the correct format
+export const useCreateAlertMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (alertData: AlertFormData): Promise<any> => {
+      const query = JSON.stringify(alertData);
+      return makeApiRequest('alert-table-2938', query);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch alerts data
+      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+    }
+  });
+};
 
 // Mock data for alerts since the real API is not working
 const mockAlertData = {
@@ -259,77 +230,32 @@ const mockAlertData = {
 };
 
 // API function to fetch alerts data
-export const fetchAlertsData = async (): Promise<AlertsApiResponse> => {
-  // Using mock data instead of API call to prevent errors
-  return Promise.resolve(mockAlertData as AlertsApiResponse);
-};
-
-// API function to create a new alert
-export const createAlert = async (alertData: AlertFormData): Promise<any> => {
-  const query = `create alert for ${alertData.symbol} with ${alertData.alertType} ${alertData.condition}`;
-  // Using mock data instead of API call to prevent errors
-  console.log("Creating alert with query:", query);
-  return Promise.resolve({ success: true });
+export const useAlertsDataQuery = () => {
+  return useQuery({
+    queryKey: ['alertsData'],
+    queryFn: async (): Promise<AlertsApiResponse> => {
+      try {
+        const response = await makeApiRequest('alert-table-2938', 'get-alerts');
+        return response;
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+        // Fall back to mock data for demo purposes
+        return mockAlertData as AlertsApiResponse;
+      }
+    },
+    staleTime: 60000 // 1 minute
+  });
 };
 
 // API function to delete an alert
-export const deleteAlert = async (alertId: string): Promise<any> => {
-  // Using mock data instead of API call to prevent errors
-  console.log("Deleting alert with ID:", alertId);
-  return Promise.resolve({ success: true });
-};
-
-// API function to toggle alert status
-export const toggleAlertStatus = async (alertId: string, enable: boolean): Promise<any> => {
-  const action = enable ? "enable" : "disable";
-  // Using mock data instead of API call to prevent errors
-  console.log(`${action} alert with ID:`, alertId);
-  return Promise.resolve({ success: true });
-};
-
-// Custom hook for alerts data
-export const useAlertsData = () => {
-  return useQuery({
-    queryKey: ['alertsData'],
-    queryFn: fetchAlertsData,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,  // 5 minutes
-    retry: 0,  // No retries to prevent excessive API calls
-  });
-};
-
-// Custom hook for alert creation
-export const useCreateAlert = () => {
+export const useDeleteAlertMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: createAlert,
-    onSuccess: () => {
-      // Invalidate and refetch the alerts data
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-    }
-  });
-};
-
-// Custom hook for alert deletion
-export const useDeleteAlert = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: deleteAlert,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-    }
-  });
-};
-
-// Custom hook for toggling alert status
-export const useToggleAlertStatus = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ alertId, enable }: { alertId: string, enable: boolean }) => 
-      toggleAlertStatus(alertId, enable),
+    mutationFn: async (alertId: string): Promise<any> => {
+      const query = `delete-alert-${alertId}`;
+      return makeApiRequest('alert-table-2938', query);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
     }

@@ -1,161 +1,97 @@
 
-import { useState } from "react";
+// Import necessary components and hooks
+import React, { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
-import StockMetrics from "@/components/StockComponents/StockMetrics";
-import ReportSummary from "@/components/StockComponents/ReportSummary";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useStockData, useCompanySelect } from "@/services/stockApi";
-import DynamicChart from "@/components/StockComponents/DynamicChart";
-import MarkdownContent from "@/components/StockComponents/MarkdownContent";
+import { Card, CardContent } from "@/components/ui/card";
+import { useCompanySearchMutation, useCompanySelectMutation, CardSelectResponse } from "@/services/stockApi";
+import CompanyCardSelect from "@/components/StockComponents/CompanyCardSelect";
 import { useToast } from "@/hooks/use-toast";
+import ReportSummary from "@/components/StockComponents/ReportSummary";
 
 const Analysis = () => {
-  const [searchedSymbol, setSearchedSymbol] = useState("");
-  const [isCompanySelected, setIsCompanySelected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [companyOptions, setCompanyOptions] = useState<CardSelectResponse | null>(null);
 
-  const { data: apiData, isLoading: isLoadingStockData } = useStockData(searchedSymbol);
-  const { refetch: selectCompany, isLoading: isSelectingCompany } = useCompanySelect(searchedSymbol);
+  const toast = useToast();
 
-  const { toast } = useToast();
-  const isLoading = isLoadingStockData || isSelectingCompany;
+  // Use mutations for API calls
+  const companySearchMutation = useCompanySearchMutation();
+  const companySelectMutation = useCompanySelectMutation();
 
-  const extractOHLCVData = () => {
-    if (!apiData) return null;
-
-    const ohlcvSummary = apiData.content.reportData.find(
-      (item) => item.type === "summary" && item.content.includes("OHLCV")
-    );
-
-    if (!ohlcvSummary || ohlcvSummary.type !== "summary") return null;
-
-    // Remove HTML tags for reliable regex matching
-    const content = ohlcvSummary.content.replace(/<\/?[^>]+(>|$)/g, "");
-
-    const openMatch = content.match(/Open Price:\s*\$?([0-9.,]+)/);
-    const highMatch = content.match(/High Price:\s*\$?([0-9.,]+)/);
-    const lowMatch = content.match(/Low Price:\s*\$?([0-9.,]+)/);
-    const closeMatch = content.match(/Close Price:\s*\$?([0-9.,]+)/);
-    const volumeMatch = content.match(/Volume:\s*([0-9.,]+)/);
-
-    if (!openMatch || !highMatch || !lowMatch || !closeMatch) return null;
-
-    // Parse values, handling comma in numbers
-    const parseValue = (value: string) => parseFloat(value.replace(/,/g, ''));
-
-    return {
-      symbol: searchedSymbol.toUpperCase(),
-      price: parseValue(closeMatch[1]),
-      change: 0,
-      changePercent: 0,
-      open: parseValue(openMatch[1]),
-      high: parseValue(highMatch[1]),
-      low: parseValue(lowMatch[1]),
-      close: parseValue(closeMatch[1]),
-      volume: volumeMatch ? parseValue(volumeMatch[1]) : 0,
-    };
-  };
-
-  const handleSearch = async (symbol: string) => {
-    if (!symbol.trim()) return;
-
-    // First call select-company API
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
     try {
-      setSearchedSymbol(symbol);
-      await selectCompany();
-      setIsCompanySelected(true);
-
-      toast({
-        description: `Analyzing ${symbol}...`,
-        duration: 1500,
-      });
+      const data = await companySearchMutation.mutateAsync(query);
+      setCompanyOptions(data);
     } catch (error) {
-      toast({
+      toast.toast({
         variant: "destructive",
-        description: "Error selecting company. Please try again.",
-        duration: 3000,
+        title: "Error",
+        description: "Failed to search for companies. Please try again.",
       });
     }
   };
 
-  const extractCompanySummary = () => {
-    if (!apiData || !apiData.content || !apiData.content.reportData) return [];
-
-    const firstSummary = apiData.content.reportData.find(item => item.type === "summary");
-
-    if (!firstSummary || firstSummary.type !== "summary") return [];
-
-    // Clean the content from HTML tags
-    const cleanContent = firstSummary.content.replace(/<\/?[^>]+(>|$)/g, "");
-
-    return [
-      {
-        title: "Company Overview",
-        content: cleanContent,
-      }
-    ];
+  const handleCardSelect = async (option: { label: string; value: string }) => {
+    try {
+      setSelectedCompany(option.label);
+      const data = await companySelectMutation.mutateAsync(option.label);
+      toast.toast({
+        description: `Analysis for ${option.label} loaded successfully.`,
+        duration: 3000,
+      });
+    } catch (error) {
+      toast.toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load company data. Please try again.",
+      });
+    }
   };
-
-  const stockData = extractOHLCVData();
 
   return (
     <PageLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Stock Analysis</h1>
 
-        <StockSearch onSearch={handleSearch} isLoading={isLoading} />
+        {/* Search Input */}
+        <div className="mb-6">
+          <StockSearch
+            onSearch={handleSearch}
+            placeholder="Enter a company name (e.g. Walmart)"
+            buttonText="Analyze"
+            isLoading={companySearchMutation.isPending}
+            value={searchQuery}
+          />
+        </div>
 
-        {!apiData ? (
-          <div className="mt-8 text-center py-16">
-            <div className="text-trendmate-gray text-lg">
-              Enter a company name above to see detailed analysis
-            </div>
-          </div>
-        ) : (
-          <div className="mt-8 space-y-8">
-            <Alert variant="default" className="bg-amber-50 border border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-700" />
-              <AlertDescription className="text-amber-800">
-                AI can assist, but always invest with caution — the market has a mind of its own.
-              </AlertDescription>
-            </Alert>
+        {/* Company Selection */}
+        {companyOptions && companyOptions.options && companyOptions.options.length > 0 && !selectedCompany && (
+          <Card className="dashboard-card mb-6">
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-4">Select Company</h2>
+              <CompanyCardSelect
+                options={companyOptions.options}
+                onSelect={handleCardSelect}
+              />
+            </CardContent>
+          </Card>
+        )}
 
-            <ReportSummary
-              symbol={searchedSymbol}
-              insights={extractCompanySummary()}
-              title="Company Summary"
-            />
-
-            {apiData.content.reportData.map((item, index) => {
-              if (item.type === "chart") {
-                return (
-                  <DynamicChart
-                    key={`chart-${index}`}
-                    type={item.content.type}
-                    data={item.content.data}
-                    options={item.content.options}
-                    chartLabel={item.chartLabel}
-                  />
-                );
-              } else if (item.type === "summary" && index > 0) {
-                // Clean HTML tags from content
-                const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
-                return (
-                  <MarkdownContent
-                    key={`summary-${index}`}
-                    content={cleanContent}
-                  />
-                );
-              }
-              return null;
-            })}
-
-            {stockData && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StockMetrics symbol={searchedSymbol} data={stockData} />
+        {/* Analysis Results */}
+        {selectedCompany && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Analysis for {selectedCompany}</h2>
+            {companySelectMutation.isPending ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-trendmate-purple"></div>
+                <p className="mt-4 text-lg text-gray-600">Loading analysis...</p>
               </div>
-            )}
+            ) : companySelectMutation.data ? (
+              <ReportSummary data={companySelectMutation.data} />
+            ) : null}
           </div>
         )}
       </div>

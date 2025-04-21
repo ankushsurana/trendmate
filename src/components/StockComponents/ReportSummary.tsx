@@ -22,14 +22,17 @@ const ReportSummary = ({
 }: ReportSummaryProps) => {
   // Parse content into structured sections for better display
   const formatContent = (text: string) => {
+    // Remove any HTML tags
+    const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "");
+    
     // Split content by newlines or double breaks
-    const paragraphs = text.split(/\n{2,}|\r\n{2,}|<br><br>/).filter(Boolean);
+    const paragraphs = cleanText.split(/\n{2,}|\r\n{2,}/).filter(Boolean);
     
     // Process paragraphs to find headers and lists
     return paragraphs.map((paragraph, idx) => {
       // Check if paragraph is a header (starts with # or contains : at the end)
-      if (paragraph.startsWith('#') || paragraph.includes(':')) {
-        const headerText = paragraph.replace(/^#+\s*/, '');
+      if (paragraph.trim().startsWith('#') || paragraph.includes(':') && !paragraph.includes(': ')) {
+        const headerText = paragraph.replace(/^#+\s*/, '').trim();
         return (
           <div key={idx} className="mb-4">
             <h3 className="text-xl font-bold text-blue-800">{headerText}</h3>
@@ -38,19 +41,39 @@ const ReportSummary = ({
       }
       
       // Check if paragraph contains list items (starts with - or *)
-      if (paragraph.includes('\n- ') || paragraph.includes('\n* ')) {
-        const listItems = paragraph
-          .split(/\n[-*]\s+/)
-          .filter(Boolean)
-          .map((item, i) => (
-            <li key={i} className="ml-4 list-disc">{item.trim()}</li>
-          ));
+      if (paragraph.includes('\n- ') || paragraph.includes('\n* ') || paragraph.match(/^\s*[-*]\s+/)) {
+        // Split by list item markers
+        const listContent = paragraph.split(/\n\s*[-*]\s+/).filter(Boolean);
+        
+        // The first item might be a header or intro text
+        const firstItem = listContent[0];
+        const items = listContent.slice(1);
         
         return (
-          <ul key={idx} className="mb-4 space-y-1 text-gray-700">
-            {listItems}
-          </ul>
+          <div key={idx} className="mb-4">
+            {firstItem && !firstItem.match(/^\s*[-*]\s+/) && (
+              <p className="mb-2 text-gray-700">{firstItem.trim()}</p>
+            )}
+            <ul className="space-y-1 list-disc pl-5">
+              {items.map((item, i) => (
+                <li key={i} className="text-gray-700">{item.trim()}</li>
+              ))}
+            </ul>
+          </div>
         );
+      }
+      
+      // Key metrics or data points often have colons
+      if (paragraph.includes(': ') && !paragraph.includes('\n')) {
+        const parts = paragraph.split(': ');
+        if (parts.length === 2) {
+          return (
+            <div key={idx} className="mb-3">
+              <span className="font-semibold">{parts[0].trim()}: </span>
+              <span className="text-gray-700">{parts[1].trim()}</span>
+            </div>
+          );
+        }
       }
       
       // Regular paragraph
@@ -67,7 +90,7 @@ const ReportSummary = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center font-semibold">
           {icon}
-          {title} {symbol && `for ${symbol}`}
+          {title} {symbol && `for ${symbol.toUpperCase()}`}
         </CardTitle>
       </CardHeader>
       <CardContent>

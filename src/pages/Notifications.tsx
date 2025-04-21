@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
-import { useAlertsData, useCreateAlert } from "@/services/stockApi";
+import { useAlertsDataQuery, useCreateAlertMutation, useDeleteAlertMutation, AlertFormData } from "@/services/stockApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,61 +35,90 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const alertFormSchema = z.object({
   symbol: z.string().min(1, "Stock symbol is required"),
   alertType: z.enum(["MovingAverage", "BollingerBands"]),
-  condition: z.string().min(1, "Condition is required"),
+  condition: z.enum(["bullish", "bearish", "overBought", "overSold"]),
 });
 
 type AlertFormValues = z.infer<typeof alertFormSchema>;
 
 const Notifications = () => {
-  const { data: apiData, isLoading, error } = useAlertsData();
+  const { data: apiData, isLoading, error } = useAlertsDataQuery();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [alertToDelete, setAlertToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  const [subscriptions, setSubscriptions] = useState([
-    { id: 1, symbol: "AAPL", type: "Price Alert", threshold: "$190" },
-    { id: 2, symbol: "MSFT", type: "Volume Alert", threshold: "25M shares" },
-    { id: 3, symbol: "TSLA", type: "MA Crossover", threshold: "20-day & 50-day" },
-  ]);
   const { toast } = useToast();
-  const createAlert = useCreateAlert();
+  const createAlertMutation = useCreateAlertMutation();
+  const deleteAlertMutation = useDeleteAlertMutation();
 
   const form = useForm<AlertFormValues>({
     resolver: zodResolver(alertFormSchema),
     defaultValues: {
       symbol: "",
       alertType: "MovingAverage",
-      condition: "",
+      condition: "bullish",
     },
   });
 
   const selectedAlertType = form.watch("alertType");
 
-  const handleDeleteSubscription = (id: number) => {
-    setSubscriptions(subscriptions.filter(sub => sub.id !== id));
-    toast({
-      title: "Subscription deleted",
-      description: "Your alert subscription has been removed.",
-      duration: 3000,
-    });
+  const handleDeleteAlert = async (alertId: string) => {
+    try {
+      await deleteAlertMutation.mutateAsync(alertId);
+      
+      toast({
+        title: "Alert deleted",
+        description: "Your alert has been successfully deleted.",
+        duration: 3000,
+      });
+      
+      setAlertToDelete(null);
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete alert. Please try again.",
+        duration: 3000,
+      });
+    }
   };
 
   const onSubmit = async (data: AlertFormValues) => {
     try {
-      // Call the API to create a new alert
-      await createAlert.mutateAsync(data);
-      
-      // Add new subscription to the local state
-      const newSubscription = {
-        id: Date.now(),
-        symbol: data.symbol,
-        type: data.alertType,
-        threshold: data.condition,
+      // Format the data according to the required structure
+      const alertData: AlertFormData = {
+        Alerts: {
+          symbol: data.symbol,
+          alertType: data.alertType,
+          condition: data.condition
+        }
       };
       
-      setSubscriptions([...subscriptions, newSubscription]);
+      // Call the API to create a new alert
+      await createAlertMutation.mutateAsync(alertData);
       
       toast({
         title: "Alert created",
@@ -207,9 +236,9 @@ const Notifications = () => {
                   <div className="flex justify-end pt-4">
                     <Button 
                       type="submit" 
-                      disabled={createAlert.isPending}
+                      disabled={createAlertMutation.isPending}
                     >
-                      {createAlert.isPending ? (
+                      {createAlertMutation.isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Creating...
@@ -254,14 +283,26 @@ const Notifications = () => {
               ) : (
                 <div className="space-y-4">
                   {apiData.content.alerts.map((alert, index) => (
-                    <CrossoverAlert
-                      key={index}
-                      symbol={alert.symbol}
-                      alertType={alert.alertType}
-                      message={alert.message}
-                      timestamp={alert.timestamp}
-                      isImportant={alert.isImportant}
-                    />
+                    <div key={index} className="relative">
+                      <CrossoverAlert
+                        symbol={alert.symbol}
+                        alertType={alert.alertType}
+                        message={alert.message}
+                        timestamp={alert.timestamp}
+                        isImportant={alert.isImportant}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          setAlertToDelete(index.toString());
+                          setIsDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -278,36 +319,47 @@ const Notifications = () => {
             </div>
           </div>
 
-          {/* Right column - Your Subscriptions */}
+          {/* Right column - Your Alert Subscriptions */}
           <div>
             <h2 className="text-xl font-semibold mb-4">Your Alert Subscriptions</h2>
             <Card className="dashboard-card">
               <CardContent className="p-6">
-                {subscriptions.length === 0 ? (
+                {(!apiData?.content?.alerts || apiData.content.alerts.length === 0) && !isLoading ? (
                   <div className="text-center text-gray-500 py-6">
                     <Bell className="h-10 w-10 mx-auto mb-2 text-gray-400" />
                     <p>No active subscriptions</p>
                   </div>
                 ) : (
-                  <div className="divide-y">
-                    {subscriptions.map((subscription) => (
-                      <div key={subscription.id} className="py-4 first:pt-0 last:pb-0 flex justify-between items-center">
-                        <div>
-                          <div className="font-medium">{subscription.symbol}</div>
-                          <div className="text-sm text-gray-500">
-                            {subscription.type} ({subscription.threshold})
-                          </div>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteSubscription(subscription.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Symbol</TableHead>
+                        <TableHead>Alert Type</TableHead>
+                        <TableHead>Condition</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4">
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        apiData?.content?.alerts.map((alert, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{alert.symbol}</TableCell>
+                            <TableCell>{alert.alertType}</TableCell>
+                            <TableCell>
+                              {alert.message.includes("bullish") ? "Bullish" : 
+                               alert.message.includes("bearish") ? "Bearish" :
+                               alert.message.includes("over bought") ? "Over Bought" : "Over Sold"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>
@@ -339,6 +391,35 @@ const Notifications = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Alert Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Alert</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this alert? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => alertToDelete && handleDeleteAlert(alertToDelete)}
+              disabled={deleteAlertMutation.isPending}
+            >
+              {deleteAlertMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 };
