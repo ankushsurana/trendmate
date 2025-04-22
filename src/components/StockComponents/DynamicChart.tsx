@@ -2,12 +2,17 @@
 import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chart from 'chart.js/auto';
+import 'chartjs-adapter-date-fns';
+
+import { LinearScale, TimeScale } from 'chart.js';
+Chart.register(LinearScale, TimeScale);
 
 interface ChartDataset {
   label: string;
   data: number[];
   borderColor: string;
   backgroundColor: string;
+  fill?: boolean;
 }
 
 interface ChartData {
@@ -48,14 +53,33 @@ const DynamicChart: React.FC<DynamicChartProps> = ({ type, data, options, chartL
 
       const ctx = chartRef.current.getContext('2d');
       if (ctx) {
+        // Ensure time scale is properly configured
+        const chartOptions = {
+          ...options,
+          maintainAspectRatio: false,
+          responsive: true,
+        };
+
+        // If it's a time scale, make sure the adapter is properly set
+        if (options?.scales?.x?.type === 'time') {
+          chartOptions.scales = {
+            ...chartOptions.scales,
+            x: {
+              ...options.scales.x,
+              type: 'time',
+              time: {
+                ...options.scales.x.time,
+                parser: 'yyyy-MM-dd',
+                tooltipFormat: 'MMM d, yyyy',
+              }
+            }
+          };
+        }
+
         chartInstance.current = new Chart(ctx, {
           type: type as any,
           data: data,
-          options: {
-            ...options,
-            maintainAspectRatio: false,
-            responsive: true,
-          }
+          options: chartOptions
         });
       }
     }

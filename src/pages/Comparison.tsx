@@ -4,6 +4,7 @@ import ComparisonSearch from "@/components/StockComponents/ComparisonSearch";
 import ComparisonReport from "@/components/StockComponents/ComparisonReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import DynamicChart from "@/components/StockComponents/DynamicChart";
 import { useCompanyComparisonSearchMutation, useComparisonSelectMutation } from "@/services/stockApi";
 import { useToast } from "@/hooks/use-toast";
 

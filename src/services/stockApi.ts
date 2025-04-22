@@ -9,7 +9,7 @@ export const WIDGET_KEY = "a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9";
 export const AGENT_ID = "trendmate-4009";
 
 export interface TaskInputs {
-  query: string | string[];
+  query: string | string[] | Record<string, any>;
 }
 
 export interface ApiRequest {
@@ -196,23 +196,6 @@ export const useCompanySelectMutation = () => {
   });
 };
 
-// export const useCompanyComparisonSearchMutation = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: async (query: string): Promise<CardSelectResponse> => {
-//       return makeApiRequest('workflow-for-fetch-real-time-data-copy-1741346734879', query);
-//     },
-//     onSuccess: (data, variables) => {
-//       queryClient.setQueryData(['companySearch', variables], data);
-//     },
-//     onError: (error) => {
-//       console.error('Company search failed:', error);
-//       throw error;
-//     }
-//   });
-// };
-
 export const useCompanyComparisonSearchMutation = () => {
   const queryClient = useQueryClient();
 
@@ -247,73 +230,52 @@ export const useComparisonSelectMutation = () => {
   });
 };
 
-// Company select mutation hook
-// export const useComparisonSelectMutation = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: async (companyName: string): Promise<StockApiResponse> => {
-//       return makeApiRequest('select-company-9826', companyName);
-//     },
-//     onSuccess: (data, variables) => {
-//       queryClient.setQueryData(['companySelect', variables], data);
-//     },
-//     onError: (error) => {
-//       console.error('Company selection failed:', error);
-//       throw error;
-//     }
-//   });
-// };
-
-
-
-// API function to create a new alert with the correct format
-// export const useCreateAlertMutation = () => {
-//   const queryClient = useQueryClient();
-//   const { toast } = useToast();
-
-//   return useMutation({
-//     mutationFn: async (alertData: AlertFormData): Promise<any> => {
-//       const query = JSON.stringify(alertData);
-//       return makeApiRequest('alert-table-2938', query);
-//     },
-//     onSuccess: () => {
-//       // Invalidate and refetch alerts data
-//       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-//     }
-//   });
-// };
-
 export const useCreateAlertMutation = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (alertData: AlertFormData): Promise<any> => {
-      // Format the request properly
-      const request: ApiRequest = {
-        appId: APP_ID,
-        integrationId: 'alert-table-2938',
-        taskInputs: {
-          query: JSON.stringify(alertData)
-        }
-      };
 
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: getApiHeaders(),
-        body: JSON.stringify(request)
+        body: JSON.stringify({
+          appId: APP_ID,
+          integrationId: 'alert-table-2938',
+          taskInputs: {
+            query: alertData
+          }
+        })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to create alert: ${errorData.message}`);
+        throw new Error('Failed to create alert');
       }
 
       return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['alertsData'], (oldData: AlertsApiResponse | undefined) => {
+        if (!oldData) return oldData;
+
+        return {
+          content: {
+            alerts: [
+              ...oldData.content.alerts,
+              {
+                id: Date.now().toString(),
+                symbol: data.symbol,
+                alertType: data.alertType,
+                message: `${data.alertType} alert for ${data.symbol}`,
+                timestamp: new Date().toISOString(),
+                condition: data.condition
+              }
+            ]
+          }
+        };
+      });
+
       toast({
         title: "Alert created",
         description: "Your alert has been successfully created.",
@@ -329,67 +291,41 @@ export const useCreateAlertMutation = () => {
   });
 };
 
-// Mock data for alerts since the real API is not working
-const mockAlertData = {
-  content: {
-    alerts: [
-      {
-        symbol: "AAPL",
-        alertType: "Moving Average",
-        message: "Golden Cross detected on Apple Inc. The 50-day moving average crossed above the 200-day moving average.",
-        timestamp: new Date().toISOString(),
-        isImportant: true
-      },
-      {
-        symbol: "MSFT",
-        alertType: "Price Target",
-        message: "Microsoft reached your price target of $350.",
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        isImportant: false
-      },
-      {
-        symbol: "TSLA",
-        alertType: "Volatility",
-        message: "Tesla's volatility has increased by 25% in the last week.",
-        timestamp: new Date(Date.now() - 172800000).toISOString(),
-        isImportant: true
-      }
-    ]
+
+export const fetchAlerts = async (): Promise<AlertsApiResponse> => {
+  const payload = {
+    Alerts: "get-alerts"
+  };
+
+  const request: ApiRequest = {
+    appId: APP_ID,
+    integrationId: 'fetchalerts-from-table-4625',
+    taskInputs: {
+      query: JSON.stringify(payload)
+    }
+  };
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: getApiHeaders(),
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch alerts`);
   }
+
+  return await response.json();
 };
+
 export const useAlertsDataQuery = () => {
   return useQuery({
     queryKey: ['alertsData'],
-    queryFn: async (): Promise<AlertsApiResponse> => {
-      return mockAlertData as AlertsApiResponse;
+    queryFn: fetchAlerts,
+    retry: false,
 
-      // try {
-      //   const response = await makeApiRequest('alert-table-2938', 'get-alerts');
-      //   return response;
-      // } catch (error) {
-      //   console.error('Error fetching alerts:', error);
-      //   // Fall back to mock data for demo purposes
-      //   return mockAlertData as AlertsApiResponse;
-      // }
-    },
-    staleTime: 6000 // 1 minute
   });
-};
-
-// API function to delete an alert
-// export const useDeleteAlertMutation = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: async (alertId: string): Promise<any> => {
-//       const query = `delete-alert-${alertId}`;
-//       return makeApiRequest('alert-table-2938', query);
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-//     }
-//   });
-// };
+}
 
 export const useDeleteAlertMutation = () => {
   const queryClient = useQueryClient();
@@ -397,27 +333,26 @@ export const useDeleteAlertMutation = () => {
 
   return useMutation({
     mutationFn: async (alertId: string): Promise<any> => {
-      // Format the request properly
-      const request: ApiRequest = {
-        appId: APP_ID,
-        integrationId: 'alert-table-2938',
-        taskInputs: {
-          query: JSON.stringify({
-            action: 'delete-alert',
-            alertId: alertId
-          })
-        }
-      };
-
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: getApiHeaders(),
-        body: JSON.stringify(request)
+        body: JSON.stringify({
+          appId: APP_ID,
+          integrationId: 'alert-table-2938',
+          taskInputs: {
+            query: JSON.stringify(alertId)
+          }
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to delete alert: ${errorData.message}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = {};
+        }
+        throw new Error(errorData?.message || `Failed to delete alert`);
       }
 
       return await response.json();

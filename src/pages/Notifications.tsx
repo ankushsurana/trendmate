@@ -69,6 +69,7 @@ const Notifications = () => {
   const [alertToDelete, setAlertToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+
   const { toast } = useToast();
   const createAlertMutation = useCreateAlertMutation();
   const deleteAlertMutation = useDeleteAlertMutation();
@@ -83,28 +84,6 @@ const Notifications = () => {
   });
 
   const selectedAlertType = form.watch("alertType");
-
-  // const handleDeleteAlert = async (alertId: string) => {
-  //   try {
-  //     await deleteAlertMutation.mutateAsync(alertId);
-
-  //     toast({
-  //       title: "Alert deleted",
-  //       description: "Your alert has been successfully deleted.",
-  //       duration: 3000,
-  //     });
-
-  //     setAlertToDelete(null);
-  //     setIsDeleteDialogOpen(false);
-  //   } catch (error) {
-  //     toast({
-  //       variant: "destructive",
-  //       title: "Error",
-  //       description: "Failed to delete alert. Please try again.",
-  //       duration: 3000,
-  //     });
-  //   }
-  // };
 
   const handleDeleteAlert = async (alertId: string) => {
     try {
@@ -124,23 +103,27 @@ const Notifications = () => {
         condition: data.condition
       };
 
-      await createAlertMutation.mutateAsync(alertData);
-
-      toast({
-        title: "Alert created",
-        description: `New ${data.alertType} alert for ${data.symbol} has been created.`,
-        duration: 3000,
+      await createAlertMutation.mutateAsync(alertData, {
+        onSuccess: () => {
+          toast({
+            title: "Alert created",
+            description: `New ${data.alertType} alert for ${data.symbol} has been created.`,
+            duration: 3000,
+          });
+          setIsDialogOpen(false);
+          form.reset();
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: error instanceof Error ? error.message : "Failed to create alert",
+            duration: 3000,
+          });
+        }
       });
-
-      setIsDialogOpen(false);
-      form.reset();
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create alert",
-        duration: 3000,
-      });
+      console.error("Error creating alert:", error);
     }
   };
 
@@ -279,7 +262,7 @@ const Notifications = () => {
                     Error loading alerts. Please try again later.
                   </AlertDescription>
                 </Alert>
-              ) : !apiData || !apiData.content || !apiData.content.alerts || apiData.content.alerts.length === 0 ? (
+              ) : apiData?.content?.alerts?.length ? (
                 <Card className="dashboard-card">
                   <CardContent className="p-6 text-center text-gray-500">
                     <Bell className="h-10 w-10 mx-auto mb-2 text-gray-400" />
