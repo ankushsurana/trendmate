@@ -105,6 +105,19 @@ export interface ComparisonApiResponse {
   };
 }
 
+export interface NotificationData {
+  crossovers: Array<{
+    date: string;
+    signal: string;
+    crossover: string;
+    rsi: string;
+    ema200: string;
+    ema50: string;
+    ohlcv: Record<string, string>;
+  }>;
+  message: string;
+}
+
 export interface AlertFormData {
   symbol: string;
   alertType: "MovingAverage" | "BollingerBands";
@@ -291,31 +304,115 @@ export const useCreateAlertMutation = () => {
   });
 };
 
+export const fetchNotificationData = async (): Promise<{ [key: string]: NotificationData }> => {
+  try {
+    const apis = [
+      // { key: "predict", id: "predict-stock-movement-6475" },
+      // { key: "bollinger", id: "analyze-bollinger-bands-1802" },
+    ];
 
-export const fetchAlerts = async (): Promise<AlertsApiResponse> => {
-  const payload = {
-    Alerts: "get-alerts"
-  };
+    const requestFor = async (integrationId: string) => {
+      try {
+        const request: ApiRequest = {
+          appId: APP_ID,
+          integrationId,
+          taskInputs: { query: "" }
+        };
 
-  const request: ApiRequest = {
-    appId: APP_ID,
-    integrationId: 'fetchalerts-from-table-4625',
-    taskInputs: {
-      query: JSON.stringify(payload)
-    }
-  };
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: getApiHeaders(),
+          body: JSON.stringify(request)
+        });
 
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: getApiHeaders(),
-    body: JSON.stringify(request)
-  });
+        if (!response.ok) {
+          console.error(`Failed to fetch notifications from ${integrationId}: ${response.status}`);
+          return { content: {} };
+        }
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch alerts`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching from ${integrationId}:`, error);
+        return { content: {} };
+      }
+    };
+
+    const results = await Promise.all(
+      apis.map(async (api) => {
+        const resp = await requestFor(api.id);
+        return [api.key, resp?.content || {}];
+      })
+    );
+
+    return Object.fromEntries(results);
+  } catch (error) {
+    console.error("Error fetching notification data:", error);
+    return {};
   }
+};
 
-  return await response.json();
+export interface DailyNotificationItem {
+  date: string;
+  condition: string;
+  description: string;
+}
+
+export const fetchDailyNotifications = async (): Promise<DailyNotificationItem[]> => {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        appId: APP_ID,
+        integrationId: 'fetchdailynotification-5882',
+        taskInputs: { query: "" }
+      })
+    });
+    if (!response.ok) throw new Error('Failed to fetch daily notifications');
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Error fetching daily notifications:", error);
+    return [];
+  }
+};
+
+export const useDailyNotificationsQuery = (enabled = false) => {
+  // Use enabled to control fetch-on-click
+  return useQuery({
+    queryKey: ['dailyNotifications'],
+    queryFn: fetchDailyNotifications,
+    enabled, // Not fetching on mount, only when triggered by user
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+
+export const fetchAlerts = async (): Promise<AlertItem[]> => {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        appId: APP_ID,
+        integrationId: 'fetchalerts-from-table-4625',
+        taskInputs: {
+          query: ""
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch alerts');
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching alerts:", error);
+    return [];
+  }
 };
 
 export const useAlertsDataQuery = () => {
@@ -326,6 +423,15 @@ export const useAlertsDataQuery = () => {
 
   });
 }
+
+export const useNotificationDataQuery = () => {
+  return useQuery({
+    queryKey: ['notificationData'],
+    queryFn: fetchNotificationData,
+    refetchOnWindowFocus: false,
+  });
+};
+
 
 export const useDeleteAlertMutation = () => {
   const queryClient = useQueryClient();
