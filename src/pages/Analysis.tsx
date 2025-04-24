@@ -1,15 +1,16 @@
-
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, TrendingUp, PieChart, BarChart4 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCompanySearchMutation, useCompanySelectMutation } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";
 import MarkdownContent from "@/components/StockComponents/MarkdownContent";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Analysis = () => {
   const [searchedSymbol, setSearchedSymbol] = useState("");
@@ -142,86 +143,182 @@ const Analysis = () => {
 
   return (
     <PageLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-trendmate-dark mb-8">Stock Analysis</h1>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      >
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            Stock Analysis
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Get comprehensive insights and analysis for any publicly traded company
+          </p>
+        </motion.div>
 
-        <StockSearch
-          onSearch={handleSearch}
-          isLoading={isLoading}
-          value={searchedSymbol}
-          onCardSelect={handleCardSelect}
-          showCards={showCards}
-          companyOptions={companyOptions}
-        />
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <StockSearch
+            onSearch={handleSearch}
+            isLoading={isLoading}
+            value={searchedSymbol}
+            onCardSelect={handleCardSelect}
+            showCards={showCards}
+            companyOptions={companyOptions}
+          />
+        </motion.div>
 
-        {!searchedSymbol && !showCards ? (
-          <div className="mt-8 text-center py-16">
-            <div className="text-trendmate-gray text-lg">
-              Enter a company name above to see detailed analysis
-            </div>
-          </div>
-        ) : isLoading ? (
-          <div className="mt-8 text-center py-16">
-            <Loader2 className="h-12 w-12 text-trendmate-purple animate-spin mx-auto mb-4" />
-            <div className="text-trendmate-gray text-lg">
-              Loading analysis for {searchedSymbol || "company"}...
-            </div>
-          </div>
-        ) : isError ? (
-          <div className="mt-8">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Error loading stock data. Please try again with a different company.
-              </AlertDescription>
-            </Alert>
-          </div>
-        ) : analysisData ? (
-          <div className="mt-8 space-y-8">
-            <Alert variant="default" className="bg-amber-50 border border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-700" />
-              <AlertDescription className="text-amber-800">
-                AI can assist, but always invest with caution — the market has a mind of its own.
-              </AlertDescription>
-            </Alert>
-
-            <ReportSummary
-              symbol={searchedSymbol}
-              insights={extractCompanySummary()}
-              title="Company Summary"
-            />
-
-            {analysisData.content.reportData.map((item, index) => {
-              if (item.type === "chart") {
-                return (
-                  <DynamicChart
-                    key={`chart-${index}`}
-                    type={item.content.type}
-                    data={item.content.data}
-                    options={item.content.options}
-                    chartLabel={item.chartLabel}
-                  />
-                );
-              } else if (item.type === "summary" && index > 0) {
-                const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
-                return (
-                  <MarkdownContent
-                    key={`summary-${index}`}
-                    content={cleanContent}
-                  />
-                );
-              }
-              return null;
-            })}
-
-            {stockData && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StockMetrics symbol={searchedSymbol} data={stockData} />
+        <AnimatePresence mode="wait">
+          {!searchedSymbol && !showCards ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mt-12"
+            >
+              <Card className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-100">
+                <CardContent className="pt-12 pb-12 text-center space-y-6">
+                  <TrendingUp className="h-16 w-16 mx-auto text-gray-400" />
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-gray-700">
+                      Start Your Analysis
+                    </h3>
+                    <p className="text-gray-500 max-w-md mx-auto">
+                      Enter a company name or ticker symbol above to see detailed market analysis and insights
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-12 text-center py-16"
+            >
+              <div className="relative">
+                <Loader2 className="h-16 w-16 text-purple-600 animate-spin mx-auto mb-6" />
+                <div className="text-gray-600 text-lg">
+                  Analyzing {searchedSymbol || "company"}...
+                </div>
+                <p className="text-gray-500 mt-2">
+                  Gathering market data and generating insights
+                </p>
               </div>
-            )}
-          </div>
-        ) : null}
-      </div>
+            </motion.div>
+          ) : isError ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-12"
+            >
+              <Alert variant="destructive" className="border-2">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription className="text-base">
+                  Error loading stock data. Please try again with a different company.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          ) : analysisData ? (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-12 space-y-8"
+            >
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Alert variant="default" className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 shadow-sm">
+                  <AlertCircle className="h-4 w-4 text-amber-700" />
+                  <AlertDescription className="text-amber-800 font-medium">
+                    AI can assist, but always invest with caution — the market has a mind of its own.
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ReportSummary
+                  symbol={searchedSymbol}
+                  insights={extractCompanySummary()}
+                  title="Company Summary"
+                  icon={<PieChart className="mr-2 h-5 w-5 text-blue-600" />}
+                />
+              </motion.div>
+
+              {analysisData.content.reportData.map((item, index) => {
+                if (item.type === "chart") {
+                  return (
+                    <motion.div
+                      key={`chart-${index}`}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200"
+                    >
+                      <DynamicChart
+                        type={item.content.type}
+                        data={item.content.data}
+                        options={item.content.options}
+                        chartLabel={item.chartLabel}
+                      />
+                    </motion.div>
+                  );
+                } else if (item.type === "summary" && index > 0) {
+                  const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
+                  return (
+                    <motion.div
+                      key={`summary-${index}`}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
+                    >
+                      <MarkdownContent content={cleanContent} />
+                    </motion.div>
+                  );
+                }
+                return null;
+              })}
+
+              {stockData && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                >
+                  <StockMetrics
+                    symbol={searchedSymbol}
+                    data={stockData}
+                  />
+                </motion.div>
+              )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
     </PageLayout>
   );
 };

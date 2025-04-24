@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   TrendingUp,
-  BarChart3,
+  BarChart2,
   ArrowRightCircle,
   LineChart,
   AlertTriangle,
@@ -114,7 +114,7 @@ const Index = () => {
             <Card className="stock-card">
               <CardContent className="p-8">
                 <div className="bg-trendmate-blue/10 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
-                  <BarChart3 className="h-6 w-6 text-trendmate-blue" />
+                  <BarChart2 className="h-6 w-6 text-trendmate-blue" />
                 </div>
                 <h3 className="text-xl font-bold text-trendmate-dark mb-3">Company Comparison</h3>
                 <p className="text-gray-600 mb-6">
@@ -203,22 +203,6 @@ const Index = () => {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-trendmate-purple text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold">Ready to Transform Your Investment Strategy?</h2>
-          <p className="mt-4 text-lg max-w-2xl mx-auto">
-            Join thousands of investors who are making smarter decisions with Trendmate
-          </p>
-          <Button
-            className="mt-8 bg-white text-trendmate-purple hover:bg-gray-100"
-            size="lg"
-          >
-            <Link to="/analysis">Get Started Now</Link>
-          </Button>
         </div>
       </section>
     </PageLayout>

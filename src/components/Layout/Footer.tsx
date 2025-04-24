@@ -15,7 +15,7 @@ const Footer = () => {
               </span>
             </Link>
             <p className="mt-4 text-gray-500 max-w-md">
-              Trendmate is your AI-powered stock market assistant, providing advanced analysis, 
+              Trendmate is your AI-powered stock market assistant, providing advanced analysis,
               trend detection, and actionable insights to help you make informed investment decisions.
             </p>
           </div>
@@ -49,11 +49,6 @@ const Footer = () => {
               <li>
                 <a href="#" className="text-gray-500 hover:text-trendmate-purple">
                   About
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-500 hover:text-trendmate-purple">
-                  Blog
                 </a>
               </li>
               <li>

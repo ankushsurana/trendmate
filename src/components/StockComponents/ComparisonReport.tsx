@@ -1,9 +1,9 @@
-
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import MarkdownContent from "./MarkdownContent";
 import DynamicChart from "./DynamicChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ReactNode } from "react";
 
 interface ReportProps {
@@ -19,7 +19,6 @@ interface ComparisonMetric {
   winner?: 1 | 2 | 0;
 }
 
-// Define proper props for ComparisonCard component
 interface ComparisonCardProps {
   symbol1: string;
   symbol2: string;
@@ -68,28 +67,144 @@ const ComparisonCard = ({ symbol1, symbol2, metrics }: ComparisonCardProps) => {
   );
 };
 
+interface FinancialMetric {
+  [key: string]: string;
+}
+
+const ComparisonTable = ({ data }: { data: FinancialMetric[] }) => {
+  const formatValue = (value: string) => {
+    if (!value || value === "None" || value === "null" || value === "undefined") return "-";
+    return value;
+  };
+
+  const getHeaders = () => {
+    if (data.length === 0) return [];
+    return Object.keys(data[0]);
+  };
+
+  const headers = getHeaders();
+
+  return (
+    <Card className="dashboard-card mb-6">
+      <CardHeader>
+        <CardTitle>Financial Metrics Comparison</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                {headers.map((header) => (
+                  <TableHead
+                    key={header}
+                    className="font-semibold whitespace-nowrap"
+                  >
+                    {header.split(/(?=[A-Z])/).join(" ")} { }
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((row, index) => (
+                <TableRow
+                  key={index}
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  {headers.map((header) => (
+                    <TableCell
+                      key={`${index}-${header}`}
+                      className={header.toLowerCase().includes('year') ? 'font-medium' : ''}
+                    >
+                      {formatValue(row[header])}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
+  const parseTableData = (content: string): FinancialMetric[] => {
+    const lines = content.split('\n');
+    const tableData: FinancialMetric[] = [];
+    let headers: string[] = [];
+
+    const tableStartIndex = lines.findIndex(line => line.trim().startsWith('|'));
+    if (tableStartIndex === -1) return [];
+
+    const headerRow = lines[tableStartIndex];
+    headers = headerRow
+      .split('|')
+      .map(header => header.trim())
+      .filter(Boolean)
+      .map(header => header.replace(/\s+/g, ''));
+
+    const dataStartIndex = tableStartIndex + 2;
+
+    for (let i = dataStartIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line.startsWith('|') || !line.endsWith('|')) break;
+
+      const cells = line
+        .split('|')
+        .map(cell => cell.trim())
+        .filter(Boolean);
+
+      if (cells.length === headers.length) {
+        const rowData: FinancialMetric = {};
+        headers.forEach((header, index) => {
+          rowData[header] = cells[index];
+        });
+        tableData.push(rowData);
+      }
+    }
+
+    return tableData;
+  };
+
   const renderReportData = () => {
     if (!data?.content?.reportData) {
       return null;
     }
-    
+
     return data.content.reportData.map((item: any, index: number) => {
       if (item.type === "summary") {
-        // Clean content before rendering
-        const cleanContent = item.content.replace(/<\/?[^>]+(>|$)/g, "");
-        
+        if (item.content.includes('|')) {
+          const tableData = parseTableData(item.content);
+
+          const [beforeTable, ...rest] = item.content.split('```');
+          const afterTable = rest.length > 1 ? rest[rest.length - 1] : '';
+
+          return (
+            <div key={index} className="space-y-6">
+              {beforeTable && (
+                <MarkdownContent
+                  content={beforeTable}
+                  className="mb-6"
+                />
+              )}
+              {tableData.length > 0 && <ComparisonTable data={tableData} />}
+              {afterTable && (
+                <MarkdownContent
+                  content={afterTable}
+                  className="mb-6"
+                />
+              )}
+            </div>
+          );
+        }
+
         return (
-          <Card key={index} className="mb-6 dashboard-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">
-                {index === 0 ? "Summary Analysis" : `Analysis ${index + 1}`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MarkdownContent content={cleanContent} />
-            </CardContent>
-          </Card>
+          <MarkdownContent
+            key={index}
+            content={item.content}
+            className="mb-6"
+          />
         );
       } else if (item.type === "chart") {
         return (
@@ -106,7 +221,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
         const cleanedHtml = item.content
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
           .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-          
+
         return (
           <div key={index} className="mb-6">
             <Card className="dashboard-card">
@@ -125,14 +240,15 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
       return null;
     });
   };
-  
+
+
   const renderCompanyComparison = () => {
     if (!data?.content?.companies || data.content.companies.length < 2) {
       return null;
     }
-    
+
     const [company1, company2] = data.content.companies;
-    
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card className="dashboard-card">
@@ -149,10 +265,10 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
                 </li>
               ))}
             </ul>
-            
+
             <h3 className="text-lg font-semibold mt-6 mb-2">Summary</h3>
             <p className="text-sm text-gray-700">{company1.summary}</p>
-            
+
             {company1.strengths?.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mt-6 mb-2">Strengths</h3>
@@ -165,7 +281,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
             )}
           </CardContent>
         </Card>
-        
+
         <Card className="dashboard-card">
           <CardHeader>
             <CardTitle>{company2.name} ({company2.symbol})</CardTitle>
@@ -180,10 +296,10 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
                 </li>
               ))}
             </ul>
-            
+
             <h3 className="text-lg font-semibold mt-6 mb-2">Summary</h3>
             <p className="text-sm text-gray-700">{company2.summary}</p>
-            
+
             {company2.strengths?.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mt-6 mb-2">Strengths</h3>
@@ -199,19 +315,18 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
       </div>
     );
   };
-  
+
   const renderComparisonPoints = () => {
     if (!data?.content?.comparison?.length) {
       return null;
     }
-    
+
     const comparisonMetrics = data.content.comparison.map((item: any) => ({
       title: item.title,
       value1: item.value1,
       value2: item.value2,
-      // You can add logic here to determine winner
     }));
-    
+
     return (
       <Card className="mb-6 dashboard-card">
         <CardHeader>
@@ -219,7 +334,7 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
         </CardHeader>
         <CardContent>
           <div>
-            <ComparisonCard 
+            <ComparisonCard
               symbol1={symbol1}
               symbol2={symbol2}
               metrics={comparisonMetrics}

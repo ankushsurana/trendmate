@@ -10,7 +10,6 @@ interface MarkdownContentProps {
   className?: string;
 }
 
-
 const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, title, className }) => {
   return (
     <Card className={`dashboard-card ${className || ''}`}>
@@ -22,6 +21,35 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, title, class
       <CardContent>
         <ReactMarkdown
           components={{
+            table: ({ node, ...props }) => (
+              <div className="overflow-x-auto border border-gray-200 rounded-md shadow-sm">
+                <table
+                  {...props}
+                  className="w-full table-auto divide-y divide-gray-300 text-sm text-left text-gray-700"
+                />
+              </div>
+            ),
+            thead: ({ node, ...props }) => (
+              <thead {...props} className="bg-gray-50 sticky top-0 z-10" />
+            ),
+            th: ({ node, ...props }) => (
+              <th
+                {...props}
+                className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap"
+              />
+            ),
+            td: ({ node, ...props }) => (
+              <td
+                {...props}
+                className="px-4 py-2 text-gray-600 whitespace-nowrap"
+              />
+            ),
+            tr: ({ node, ...props }) => (
+              <tr
+                {...props}
+                className="even:bg-gray-50 hover:bg-gray-100 transition-colors"
+              />
+            ),
             div: ({ children }) => (
               <div className="prose prose-sm max-w-none text-trendmate-dark">
                 {children}

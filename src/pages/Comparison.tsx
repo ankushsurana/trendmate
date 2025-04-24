@@ -67,54 +67,6 @@ const Comparison = () => {
     });
   };
 
-  // const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
-  //   if (isFirstCompany) {
-  //     setSelectedSymbol1(company.value);
-  //     setIsFirstCompanySelected(true);
-
-  //     toast({
-  //       description: `Selected ${company.label} as first company`,
-  //       duration: 1500,
-  //     });
-
-  //     // Call select-company-9826 API for first company
-  //     selectCompany(company.value, {
-  //       onSuccess: (data) => {
-  //         // After first company is selected, show cards for second company
-  //         // We don't need to set comparisonData yet as we need both companies
-  //       },
-  //       onError: (error) => {
-  //         toast({
-  //           variant: "destructive",
-  //           description: "Error selecting first company. Please try again.",
-  //           duration: 3000,
-  //         });
-  //       }
-  //     });
-  //   } else {
-  //     setSelectedSymbol2(company.value);
-  //     setShowCards(false);
-
-  //     toast({
-  //       description: `Selected ${company.label} as second company. Generating comparison...`,
-  //       duration: 1500,
-  //     });
-
-  //     // After selecting the second company, we'll get the full comparison data
-  //     selectCompany(company.value, {
-  //       onSuccess: (data) => {
-  //         setComparisonData(data);
-  //       },
-  //       onError: (error) => {
-  //         toast({
-  //           variant: "destructive",
-  //           description: "Error generating comparison. Please try again.",
-  //           duration: 3000,
-  //         });
-  //       }
-  //     });
-  //   }
-  // };
 
   const handleCardSelect = async (company: { label: string; value: string }, isFirstCompany: boolean) => {
     if (isFirstCompany) {

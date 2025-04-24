@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart2 } from "lucide-react";
 
@@ -18,37 +17,64 @@ const ReportSummary = ({
   symbol,
   insights,
   title = "Trendmate AI Analysis",
-  icon = <BarChart2 className="mr-2 h-5 w-5 text-trendmate-purple" />
+  icon = <BarChart2 className="mr-2 h-5 w-5 text-trendmate-purple" />,
 }: ReportSummaryProps) => {
-  // Parse content into structured sections for better display
   const formatContent = (text: string) => {
-    // Remove any HTML tags
-    const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "");
-    
-    // Split content by newlines or double breaks
-    const paragraphs = cleanText.split(/\n{2,}|\r\n{2,}/).filter(Boolean);
-    
-    // Process paragraphs to find headers and lists
+    // Process HTML headings
+    let processedText = text
+      .replace(/<h1>(.*?)<\/h1>/g, '\n# $1\n')
+      .replace(/<h2>(.*?)<\/h2>/g, '\n## $1\n')
+      .replace(/<h3>(.*?)<\/h3>/g, '\n### $1\n')
+      .replace(/<h4>(.*?)<\/h4>/g, '\n#### $1\n')
+      .replace(/<h5>(.*?)<\/h5>/g, '\n##### $1\n')
+      .replace(/<h6>(.*?)<\/h6>/g, '\n###### $1\n');
+
+    // Process HTML lists
+    processedText = processedText
+      .replace(/<ul>|<ol>/g, '\n')
+      .replace(/<\/ul>|<\/ol>/g, '\n')
+      .replace(/<li>(.*?)<\/li>/g, '\n- $1');
+
+    // Process text formatting
+    processedText = processedText
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<b>(.*?)<\/b>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<i>(.*?)<\/i>/g, '*$1*');
+
+    // Process paragraphs and breaks
+    processedText = processedText
+      .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
+      .replace(/<br\s?\/?>/g, '\n');
+
+    // Remove any remaining HTML tags
+    processedText = processedText.replace(/<\/?[^>]+(>|$)/g, "");
+
+    // Split into paragraphs
+    const paragraphs = processedText.split(/\n{2,}|\r\n{2,}/).filter(Boolean);
+
     return paragraphs.map((paragraph, idx) => {
-      // Check if paragraph is a header (starts with # or contains : at the end)
-      if (paragraph.trim().startsWith('#') || paragraph.includes(':') && !paragraph.includes(': ')) {
-        const headerText = paragraph.replace(/^#+\s*/, '').trim();
-        return (
-          <div key={idx} className="mb-4">
-            <h3 className="text-xl font-bold text-blue-800">{headerText}</h3>
-          </div>
-        );
+      const trimmedPara = paragraph.trim();
+
+      // Handle headers
+      if (trimmedPara.startsWith('#')) {
+        const level = (trimmedPara.match(/^#+/) || ['#'])[0].length;
+        const headerText = trimmedPara.replace(/^#+\s*/, '');
+        const headerClass = `font-bold mb-3 mt-4 ${level === 1 ? "text-2xl text-blue-900" :
+          level === 2 ? "text-xl text-blue-800" :
+            level === 3 ? "text-lg text-blue-700" :
+              "text-base text-blue-600"
+          }`;
+
+        return <h3 key={idx} className={headerClass}>{headerText}</h3>;
       }
-      
-      // Check if paragraph contains list items (starts with - or *)
+
+      // Handle lists
       if (paragraph.includes('\n- ') || paragraph.includes('\n* ') || paragraph.match(/^\s*[-*]\s+/)) {
-        // Split by list item markers
         const listContent = paragraph.split(/\n\s*[-*]\s+/).filter(Boolean);
-        
-        // The first item might be a header or intro text
         const firstItem = listContent[0];
         const items = listContent.slice(1);
-        
+
         return (
           <div key={idx} className="mb-4">
             {firstItem && !firstItem.match(/^\s*[-*]\s+/) && (
@@ -62,51 +88,62 @@ const ReportSummary = ({
           </div>
         );
       }
-      
-      // Key metrics or data points often have colons
-      if (paragraph.includes(': ') && !paragraph.includes('\n')) {
-        const parts = paragraph.split(': ');
-        if (parts.length === 2) {
-          return (
-            <div key={idx} className="mb-3">
-              <span className="font-semibold">{parts[0].trim()}: </span>
-              <span className="text-gray-700">{parts[1].trim()}</span>
-            </div>
-          );
-        }
+
+      if (trimmedPara.includes(': ') && !trimmedPara.includes('\n')) {
+        const [key, ...valueParts] = trimmedPara.split(': ');
+        const value = valueParts.join(': ');
+
+        return (
+          <div key={idx} className="mb-3 flex flex-wrap">
+            <span className="font-semibold text-blue-900 mr-1">{key}:</span>
+            <span className="text-gray-800">{value}</span>
+          </div>
+        );
       }
-      
-      // Regular paragraph
+
+      if (trimmedPara.includes('**')) {
+        const parts = trimmedPara.split('**');
+        return (
+          <p key={idx} className="mb-3 text-gray-800 leading-relaxed">
+            {parts.map((part, i) =>
+              i % 2 === 1 ? (
+                <strong key={i} className="text-blue-900">{part}</strong>
+              ) : (
+                part
+              )
+            )}
+          </p>
+        );
+      }
+
       return (
-        <p key={idx} className="mb-4 text-gray-700 leading-relaxed">
-          {paragraph.trim()}
+        <p key={idx} className="mb-3 text-gray-800 leading-relaxed">
+          {trimmedPara}
         </p>
       );
     });
   };
 
   return (
-    <Card className="dashboard-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center font-semibold">
+    <Card className="bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg border border-blue-100 overflow-hidden">
+      <CardHeader className="pb-3 border-b border-blue-100 bg-white bg-opacity-60">
+        <CardTitle className="text-xl flex items-center font-bold text-blue-900">
           {icon}
-          {title} {symbol && `for ${symbol.toUpperCase()}`}
+          {title} {symbol && <span className="text-purple-700 ml-1">for {symbol.toUpperCase()}</span>}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-5 ">
+        <div className="space-y-6">
           {insights.map((section, index) => (
             <div
               key={index}
-              className="p-4 rounded-md bg-blue-50 border-l-4 border-blue-400 shadow-sm"
+              className="p-5 rounded-lg bg-white border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-all duration-300"
             >
-              {/* Heading */}
-              <h3 className="text-xl font-bold text-blue-800 mb-4">
+              <h3 className="text-xl font-bold text-blue-800 mb-4 pb-2 border-b border-blue-100 flex items-center">
+                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                 {section.title}
               </h3>
-
-              {/* Content */}
-              <div className="text-base">
+              <div className="text-base space-y-3 pl-1">
                 {formatContent(section.content)}
               </div>
             </div>

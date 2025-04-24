@@ -1,5 +1,3 @@
-// stockAPI
-
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -7,6 +5,17 @@ export const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-
 export const APP_ID = "uptiq-interns";
 export const WIDGET_KEY = "a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9";
 export const AGENT_ID = "trendmate-4009";
+
+
+export const getApiHeaders = () => {
+  return {
+    'widgetKey': WIDGET_KEY,
+    'appid': APP_ID,
+    'agentId': AGENT_ID,
+    'Content-Type': 'application/json'
+  };
+};
+
 
 export interface TaskInputs {
   query: string | string[] | Record<string, any>;
@@ -141,14 +150,6 @@ export interface AlertsApiResponse {
 }
 
 
-export const getApiHeaders = () => {
-  return {
-    'widgetKey': WIDGET_KEY,
-    'appid': APP_ID,
-    'agentId': AGENT_ID,
-    'Content-Type': 'application/json'
-  };
-};
 
 export async function makeApiRequest(integrationId: string, query: string | string[]) {
   try {
@@ -170,7 +171,6 @@ export async function makeApiRequest(integrationId: string, query: string | stri
 
     return await response.json();
   } catch (error) {
-    console.error(`Error making API request to ${integrationId}:`, error);
     throw error;
   }
 }
@@ -186,7 +186,6 @@ export const useCompanySearchMutation = () => {
       queryClient.setQueryData(['companySearch', variables], data);
     },
     onError: (error) => {
-      console.error('Company search failed:', error);
       throw error;
     }
   });
@@ -203,7 +202,6 @@ export const useCompanySelectMutation = () => {
       queryClient.setQueryData(['companySelect', variables], data);
     },
     onError: (error) => {
-      console.error('Company selection failed:', error);
       throw error;
     }
   });
@@ -220,7 +218,6 @@ export const useCompanyComparisonSearchMutation = () => {
       queryClient.setQueryData(['companyComparisonSearch', variables], data);
     },
     onError: (error) => {
-      console.error('Company comparison search failed:', error);
       throw error;
     }
   });
@@ -237,7 +234,6 @@ export const useComparisonSelectMutation = () => {
       queryClient.setQueryData(['comparisonSelect', variables], data);
     },
     onError: (error) => {
-      console.error('Company comparison selection failed:', error);
       throw error;
     }
   });
@@ -248,8 +244,7 @@ export const useCreateAlertMutation = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (alertData: AlertFormData): Promise<any> => {
-
+    mutationFn: async (alertData: AlertFormData): Promise<AlertItem> => {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: getApiHeaders(),
@@ -262,93 +257,39 @@ export const useCreateAlertMutation = () => {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create alert');
+        throw new Error(data.message || 'Failed to create alert');
       }
 
-      return await response.json();
+      return {
+        id: Date.now().toString(),
+        symbol: alertData.symbol,
+        alertType: alertData.alertType,
+        message: `${alertData.alertType} alert for ${alertData.symbol}`,
+        timestamp: new Date().toISOString(),
+        condition: alertData.condition
+      };
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['alertsData'], (oldData: AlertsApiResponse | undefined) => {
-        if (!oldData) return oldData;
-
-        return {
-          content: {
-            alerts: [
-              ...oldData.content.alerts,
-              {
-                id: Date.now().toString(),
-                symbol: data.symbol,
-                alertType: data.alertType,
-                message: `${data.alertType} alert for ${data.symbol}`,
-                timestamp: new Date().toISOString(),
-                condition: data.condition
-              }
-            ]
-          }
-        };
+    onSuccess: (newAlert) => {
+      queryClient.setQueryData(['alertsData'], (oldData: AlertItem[] | undefined) => {
+        return oldData ? [...oldData, newAlert] : [newAlert];
       });
 
       toast({
-        title: "Alert created",
-        description: "Your alert has been successfully created.",
+        title: "Success!",
+        description: "Your alert has been created successfully.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create alert. Please try again.",
+        description: error.message || "Failed to create alert. Please try again.",
       });
     }
   });
-};
-
-export const fetchNotificationData = async (): Promise<{ [key: string]: NotificationData }> => {
-  try {
-    const apis = [
-      // { key: "predict", id: "predict-stock-movement-6475" },
-      // { key: "bollinger", id: "analyze-bollinger-bands-1802" },
-    ];
-
-    const requestFor = async (integrationId: string) => {
-      try {
-        const request: ApiRequest = {
-          appId: APP_ID,
-          integrationId,
-          taskInputs: { query: "" }
-        };
-
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: getApiHeaders(),
-          body: JSON.stringify(request)
-        });
-
-        if (!response.ok) {
-          console.error(`Failed to fetch notifications from ${integrationId}: ${response.status}`);
-          return { content: {} };
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error(`Error fetching from ${integrationId}:`, error);
-        return { content: {} };
-      }
-    };
-
-    const results = await Promise.all(
-      apis.map(async (api) => {
-        const resp = await requestFor(api.id);
-        return [api.key, resp?.content || {}];
-      })
-    );
-
-    return Object.fromEntries(results);
-  } catch (error) {
-    console.error("Error fetching notification data:", error);
-    return {};
-  }
 };
 
 export interface DailyNotificationItem {
@@ -372,7 +313,6 @@ export const fetchDailyNotifications = async (): Promise<DailyNotificationItem[]
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error fetching daily notifications:", error);
     return [];
   }
 };
@@ -382,7 +322,7 @@ export const useDailyNotificationsQuery = (enabled = false) => {
   return useQuery({
     queryKey: ['dailyNotifications'],
     queryFn: fetchDailyNotifications,
-    enabled, // Not fetching on mount, only when triggered by user
+    enabled,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -408,9 +348,8 @@ export const fetchAlerts = async (): Promise<AlertItem[]> => {
     }
 
     const data = await response.json();
-    return data || [];
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error fetching alerts:", error);
     return [];
   }
 };
@@ -423,59 +362,3 @@ export const useAlertsDataQuery = () => {
 
   });
 }
-
-export const useNotificationDataQuery = () => {
-  return useQuery({
-    queryKey: ['notificationData'],
-    queryFn: fetchNotificationData,
-    refetchOnWindowFocus: false,
-  });
-};
-
-
-export const useDeleteAlertMutation = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (alertId: string): Promise<any> => {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: getApiHeaders(),
-        body: JSON.stringify({
-          appId: APP_ID,
-          integrationId: 'alert-table-2938',
-          taskInputs: {
-            query: JSON.stringify(alertId)
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = {};
-        }
-        throw new Error(errorData?.message || `Failed to delete alert`);
-      }
-
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alertsData'] });
-      toast({
-        title: "Alert deleted",
-        description: "Your alert has been successfully deleted.",
-      });
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete alert. Please try again.",
-      });
-    }
-  });
-};

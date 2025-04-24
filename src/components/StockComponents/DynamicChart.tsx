@@ -53,14 +53,12 @@ const DynamicChart: React.FC<DynamicChartProps> = ({ type, data, options, chartL
 
       const ctx = chartRef.current.getContext('2d');
       if (ctx) {
-        // Ensure time scale is properly configured
         const chartOptions = {
           ...options,
           maintainAspectRatio: false,
           responsive: true,
         };
 
-        // If it's a time scale, make sure the adapter is properly set
         if (options?.scales?.x?.type === 'time') {
           chartOptions.scales = {
             ...chartOptions.scales,
