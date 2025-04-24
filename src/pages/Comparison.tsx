@@ -43,7 +43,6 @@ const Comparison = () => {
   const handleCompare = async () => {
     if (!symbol1 || !symbol2) return;
 
-    // const query = `${symbol1} and ${symbol2}`;
     setShowCards(true);
     setIsFirstCompanySelected(false);
 

@@ -20,7 +20,6 @@ const ReportSummary = ({
   icon = <BarChart2 className="mr-2 h-5 w-5 text-trendmate-purple" />,
 }: ReportSummaryProps) => {
   const formatContent = (text: string) => {
-    // Process HTML headings
     let processedText = text
       .replace(/<h1>(.*?)<\/h1>/g, '\n# $1\n')
       .replace(/<h2>(.*?)<\/h2>/g, '\n## $1\n')
@@ -29,34 +28,28 @@ const ReportSummary = ({
       .replace(/<h5>(.*?)<\/h5>/g, '\n##### $1\n')
       .replace(/<h6>(.*?)<\/h6>/g, '\n###### $1\n');
 
-    // Process HTML lists
     processedText = processedText
       .replace(/<ul>|<ol>/g, '\n')
       .replace(/<\/ul>|<\/ol>/g, '\n')
       .replace(/<li>(.*?)<\/li>/g, '\n- $1');
 
-    // Process text formatting
     processedText = processedText
       .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
       .replace(/<b>(.*?)<\/b>/g, '**$1**')
       .replace(/<em>(.*?)<\/em>/g, '*$1*')
       .replace(/<i>(.*?)<\/i>/g, '*$1*');
 
-    // Process paragraphs and breaks
     processedText = processedText
       .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
       .replace(/<br\s?\/?>/g, '\n');
 
-    // Remove any remaining HTML tags
     processedText = processedText.replace(/<\/?[^>]+(>|$)/g, "");
 
-    // Split into paragraphs
     const paragraphs = processedText.split(/\n{2,}|\r\n{2,}/).filter(Boolean);
 
     return paragraphs.map((paragraph, idx) => {
       const trimmedPara = paragraph.trim();
 
-      // Handle headers
       if (trimmedPara.startsWith('#')) {
         const level = (trimmedPara.match(/^#+/) || ['#'])[0].length;
         const headerText = trimmedPara.replace(/^#+\s*/, '');
@@ -69,7 +62,6 @@ const ReportSummary = ({
         return <h3 key={idx} className={headerClass}>{headerText}</h3>;
       }
 
-      // Handle lists
       if (paragraph.includes('\n- ') || paragraph.includes('\n* ') || paragraph.match(/^\s*[-*]\s+/)) {
         const listContent = paragraph.split(/\n\s*[-*]\s+/).filter(Boolean);
         const firstItem = listContent[0];
