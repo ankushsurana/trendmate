@@ -3,7 +3,7 @@ import PageLayout from "@/components/Layout/PageLayout";
 import StockSearch from "@/components/StockComponents/StockSearch";
 import StockMetrics from "@/components/StockComponents/StockMetrics";
 import ReportSummary from "@/components/StockComponents/ReportSummary";
-import { AlertCircle, Loader2, TrendingUp, PieChart, BarChart4 } from "lucide-react";
+import { AlertCircle, Loader2, TrendingUp, PieChart } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCompanySearchMutation, useCompanySelectMutation } from "@/services/stockApi";
 import DynamicChart from "@/components/StockComponents/DynamicChart";

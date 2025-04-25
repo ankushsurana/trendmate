@@ -114,12 +114,6 @@ const Comparison = () => {
     }
   };
 
-  const handleSwapSymbols = () => {
-    const tempSymbol = symbol1;
-    setSymbol1(symbol2);
-    setSymbol2(tempSymbol);
-  };
-
   const handleReset = () => {
     setSymbol1("");
     setSymbol2("");
@@ -148,7 +142,6 @@ const Comparison = () => {
           onSymbol1Change={handleSymbol1Change}
           onSymbol2Change={handleSymbol2Change}
           onCompare={handleCompare}
-          onSwap={handleSwapSymbols}
           onReset={handleReset}
           onCardSelect={handleCardSelect}
           showCards={showCards}
@@ -159,7 +152,7 @@ const Comparison = () => {
         {!showCards && !selectedSymbol1 && !selectedSymbol2 ? (
           <div className="mt-8 text-center py-16">
             <div className="text-trendmate-gray text-lg">
-              Enter two company names above and click "Compare" to see side-by-side comparison
+              Enter two company names above and click "Compare" to see comparison
             </div>
           </div>
         ) : isLoading ? (
@@ -185,6 +178,15 @@ const Comparison = () => {
             symbol2={selectedSymbol2}
           />
         ) : null}
+        {comparisonData && (
+          <div className="mt-8">
+            <DynamicChart
+              symbol1={selectedSymbol1}
+              symbol2={selectedSymbol2}
+              data={comparisonData}
+            />
+          </div>
+        )}
       </div>
     </PageLayout>
   );

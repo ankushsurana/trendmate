@@ -118,7 +118,7 @@ const Index = () => {
                 </div>
                 <h3 className="text-xl font-bold text-trendmate-dark mb-3">Company Comparison</h3>
                 <p className="text-gray-600 mb-6">
-                  Compare multiple companies side-by-side to identify the best investment opportunities in the market.
+                  Compare multiple companies to identify the best investment opportunities in the market.
                 </p>
                 <Button variant="ghost" className="mt-auto text-trendmate-blue hover:text-trendmate-blue hover:bg-trendmate-blue/10 p-0">
                   <Link to="/comparison" className="flex items-center">

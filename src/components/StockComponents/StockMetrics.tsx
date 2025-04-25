@@ -46,19 +46,57 @@ interface StockMetricsProps {
     volume?: number;
     change?: number;
     changePercent?: number;
+    type?: string;
+    content?: string;
   };
 }
 
-const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
-  const stockData = {
-    open: data?.open,
-    high: data?.high,
-    low: data?.low,
-    close: data?.close,
-    volume: data?.volume,
-    change: data?.change ?? 2.09,
-    changePercent: data?.changePercent ?? 1.37,
+const extractDataFromHTML = (content: string) => {
+  const getValue = (label: string): number | undefined => {
+    const regex = new RegExp(`<b>${label}:<\\/b>\\s*\\$(\\d+\\.?\\d*)`, 'i');
+    const match = content.match(regex);
+    return match ? parseFloat(match[1]) : undefined;
   };
+
+  const getVolume = (): number | undefined => {
+    const regex = new RegExp(`<b>Volume:<\\/b>\\s*(\\d+(?:,\\d+)*)`, 'i');
+    const match = content.match(regex);
+    return match ? parseInt(match[1].replace(/,/g, '')) : undefined;
+  };
+
+  return {
+    open: getValue('Open'),
+    high: getValue('High'),
+    low: getValue('Low'),
+    close: getValue('Close'),
+    volume: getVolume()
+  };
+};
+
+const getInterpretation = (content: string): string | undefined => {
+  const regex = /<b>Interpretation:<\/b>\s*([^<]+)/;
+  const match = content.match(regex);
+  return match ? match[1].trim() : undefined;
+};
+
+const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
+  const parsedData = data.type === 'summary' && data.content
+    ? extractDataFromHTML(data.content)
+    : null;
+
+  const stockData = {
+    open: parsedData?.open ?? data?.open,
+    high: parsedData?.high ?? data?.high,
+    low: parsedData?.low ?? data?.low,
+    close: parsedData?.close ?? data?.close,
+    volume: parsedData?.volume ?? data?.volume,
+    change: data?.change ?? ((parsedData?.close ?? 0) - (parsedData?.open ?? 0)),
+    changePercent: data?.changePercent ?? (((parsedData?.close ?? 0) - (parsedData?.open ?? 0)) / (parsedData?.open ?? 1) * 100),
+  };
+
+  const interpretation = data.type === 'summary' && data.content
+    ? getInterpretation(data.content)
+    : null;
 
   const formatPrice = (price: number) => `$${price.toFixed(2)}`;
   const formatVolume = (vol: number) =>
@@ -102,7 +140,7 @@ const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
           </motion.div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <Metric
             title="Open"
@@ -137,6 +175,17 @@ const StockMetrics = ({ symbol, data }: StockMetricsProps) => {
             delay={0.6}
           />
         </div>
+        {interpretation && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="p-4 rounded-lg bg-blue-50 border border-blue-100"
+          >
+            <h3 className="text-sm font-semibold text-blue-900 mb-2">Market Interpretation</h3>
+            <p className="text-sm text-blue-800">{interpretation}</p>
+          </motion.div>
+        )}
       </CardContent>
     </Card>
   );

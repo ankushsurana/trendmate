@@ -1,9 +1,9 @@
 import { useState } from "react";
 import PageLayout from "@/components/Layout/PageLayout";
 import CrossoverAlert from "@/components/StockComponents/CrossoverAlert";
-import { useAlertsDataQuery, useCreateAlertMutation, AlertFormData } from "@/services/stockApi";
+import { useAlertsDataQuery, useCreateAlertMutation } from "@/services/stockApi";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Bell, Loader2, Trash2 } from "lucide-react";
+import { AlertCircle, Bell, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
