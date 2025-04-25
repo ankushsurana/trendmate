@@ -113,14 +113,14 @@ const Index = () => {
 
             <Card className="stock-card">
               <CardContent className="p-8">
-                <div className="bg-trendmate-blue/10 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
-                  <BarChart2 className="h-6 w-6 text-trendmate-blue" />
+                <div className="bg-trendmate-purple/10 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
+                  <LineChart className="h-6 w-6 text-trendmate-purple" />
                 </div>
                 <h3 className="text-xl font-bold text-trendmate-dark mb-3">Company Comparison</h3>
                 <p className="text-gray-600 mb-6">
                   Compare multiple companies to identify the best investment opportunities in the market.
                 </p>
-                <Button variant="ghost" className="mt-auto text-trendmate-blue hover:text-trendmate-blue hover:bg-trendmate-blue/10 p-0">
+                <Button variant="ghost" className="mt-auto text-trendmate-purple hover:text-trendmate-purple-light hover:bg-trendmate-purple/10 p-0">
                   <Link to="/comparison" className="flex items-center">
                     Compare Companies
                     <ArrowRightCircle className="ml-2 h-5 w-5" />
@@ -134,7 +134,6 @@ const Index = () => {
                 <div className="bg-trendmate-orange/10 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
                   <AlertTriangle className="h-6 w-6 text-trendmate-orange" />
                 </div>
-                <h3 className="text-xl font-bold text-trendmate-dark mb-3">Crossover Alerts</h3>
                 <p className="text-gray-600 mb-6">
                   Get notified about important technical crossovers and market signals so you never miss an opportunity.
                 </p>
@@ -150,7 +149,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">

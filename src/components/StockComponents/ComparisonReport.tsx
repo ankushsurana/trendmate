@@ -1,10 +1,12 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import MarkdownContent from "./MarkdownContent";
 import DynamicChart from "./DynamicChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { Progress } from "@/components/ui/progress";
 
 interface ReportProps {
   data: any;
@@ -127,6 +129,36 @@ const ComparisonTable = ({ data }: { data: FinancialMetric[] }) => {
     </Card>
   );
 };
+
+const LoadingState = ({ progress }: { progress: number }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="space-y-6 p-8"
+  >
+    <div className="text-center space-y-4">
+      <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-600" />
+      <h3 className="text-xl font-semibold text-gray-800">
+        Generating Detailed Comparison
+      </h3>
+      <p className="text-gray-600">
+        This may take a few minutes as we analyze both companies thoroughly
+      </p>
+    </div>
+
+    <div className="max-w-md mx-auto space-y-2">
+      <div className="flex justify-between text-sm text-gray-600">
+        <span>Progress</span>
+        <span>{progress}%</span>
+      </div>
+      <Progress value={progress} className="h-2" />
+    </div>
+
+    <div className="text-center text-sm text-gray-500 mt-4">
+      Please don't close this window. We're gathering comprehensive data for an accurate comparison.
+    </div>
+  </motion.div>
+);
 
 const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
   const parseTableData = (content: string): FinancialMetric[] => {
@@ -347,15 +379,28 @@ const ComparisonReport = ({ data, symbol1, symbol2 }: ReportProps) => {
 
   return (
     <div className="mt-8 space-y-8">
-      <Alert variant="default" className="bg-amber-50 border border-amber-200">
-        <AlertCircle className="h-4 w-4 text-amber-700" />
-        <AlertDescription className="text-amber-800">
-          AI can assist, but always invest with caution — the market has a mind of its own.
-        </AlertDescription>
-      </Alert>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Alert variant="default" className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 shadow-sm">
+          <AlertCircle className="h-4 w-4 text-amber-700" />
+          <AlertDescription className="text-amber-800 font-medium">
+            AI can assist, but always invest with caution — the market has a mind of its own.
+          </AlertDescription>
+        </Alert>
+      </motion.div>
 
       {data?.content?.label && (
-        <h2 className="text-2xl font-bold text-center my-6">{data.content.label}</h2>
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-3xl font-bold text-center my-8 text-gray-800 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+        >
+          {data.content.label}
+        </motion.h2>
       )}
 
       {renderCompanyComparison()}

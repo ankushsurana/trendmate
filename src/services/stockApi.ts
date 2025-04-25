@@ -5,7 +5,8 @@ export const API_URL = "https://api-uptiq-dev.ciondigital.com/workflow-defs/run-
 export const APP_ID = "uptiq-interns";
 export const WIDGET_KEY = "a6YkfZChaWHFiJcJBGjTLWJvETh0L17FJlyVJiI9";
 export const AGENT_ID = "trendmate-4009";
-
+export const API_TIMEOUT = 240000;
+export const MAX_RETRIES = 3;
 
 export const getApiHeaders = () => {
   return {
@@ -152,27 +153,62 @@ export interface AlertsApiResponse {
 
 
 export async function makeApiRequest(integrationId: string, query: string | string[]) {
-  try {
-    const request: ApiRequest = {
-      appId: APP_ID,
-      integrationId,
-      taskInputs: { query }
-    };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(request)
-    });
+  let retryCount = 0;
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
+  while (retryCount < MAX_RETRIES) {
+    try {
+      const request: ApiRequest = {
+        appId: APP_ID,
+        integrationId,
+        taskInputs: { query }
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: getApiHeaders(),
+        body: JSON.stringify(request),
+        signal: controller.signal
+      });
+
+      if (response.status === 502) {
+        throw new Error('SERVER_OVERLOADED');
+      }
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      lastError = error;
+
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. The operation is taking longer than expected.');
+      }
+
+      if (error.message === 'SERVER_OVERLOADED' || error.message.includes('fetch failed')) {
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+          const backoff = Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 10000);
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          continue;
+        }
+      }
+
+      throw error;
+    } finally {
+      if (retryCount === MAX_RETRIES - 1) {
+        clearTimeout(timeoutId);
+      }
     }
-
-    return await response.json();
-  } catch (error) {
-    throw error;
   }
+
+  throw lastError || new Error('Maximum retry attempts reached');
 }
 
 export const useCompanySearchMutation = () => {
@@ -233,7 +269,15 @@ export const useComparisonSelectMutation = () => {
     onSuccess: (data, variables) => {
       queryClient.setQueryData(['comparisonSelect', variables], data);
     },
-    onError: (error) => {
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
+    onError: (error: Error) => {
+      if (error.message === 'SERVER_OVERLOADED') {
+        throw new Error('The server is experiencing high load. Please try again in a few moments.');
+      }
+      if (error.message.includes('timed out')) {
+        throw new Error('The comparison is taking longer than expected. Please try again.');
+      }
       throw error;
     }
   });
@@ -318,7 +362,6 @@ export const fetchDailyNotifications = async (): Promise<DailyNotificationItem[]
 };
 
 export const useDailyNotificationsQuery = (enabled = false) => {
-  // Use enabled to control fetch-on-click
   return useQuery({
     queryKey: ['dailyNotifications'],
     queryFn: fetchDailyNotifications,
